@@ -12,28 +12,34 @@ class CollmanAlg:
         self._resource = resource
         self._resolution = resolution #resoltuion is nm per pixel
         if not self._resource.assert_channel_exists('PSD95_488'):
-            print('ERROR: PSD95_488 Channel must be in Resource')
+            raise ValueError('PSD95_488 Channel must be in Resource')
 
 
     def get_cluster_median(self, data):
         maxCluster = np.max(data)
         areas = np.bincount(data.astype(int).flatten())
-        return np.median(areas[1:]) #dont count background
+        if len(areas) > 1:
+            return np.median(areas[1:]) #dont count background
+        else:
+            return 0 #if no clusters exist
 
 
-    def get_cutoff(self, data, myMin, myMax, target):
+    def get_cutoff(self, data, myMin, myMax, target, verbose=False):
         #NOTE target is in nm^2
-        if myMin == myMax:
+        if abs(myMin - myMax) < .01:
             return myMin
 
         pivot = (myMin + myMax)/2
         pixelMedian = self.get_cluster_median(np.array(label(data > pivot).astype(int)))
         nmMedian = pixelMedian * self._resolution**2
-        if nmMedian < target:
-            return self.get_cutoff(data, pivot, myMax, target)
+        if verbose:
+            print('Med of:', nmMedian, '\tat: ', pivot)
 
-        elif nmMedian > target:
-            return self.get_cutoff(data, myMin, pivot, target)
+        if nmMedian > target:
+            return self.get_cutoff(data, pivot, myMax, target, verbose=verbose)
+
+        elif nmMedian < target:
+            return self.get_cutoff(data, myMin, pivot, target, verbose=verbose)
 
         else:
             return pivot
@@ -64,4 +70,4 @@ if __name__ == '__main__':
                                 [{'name': 'PSD95_488', 'dtype':'uint8'}])
 
         alg = CollmanAlg(ndr, 3.)
-        alg.detect([4, 14], [0, 1000], [0, 1000])
+        alg.detect([4, 14], [2000, 3000], [2000, 3000])
