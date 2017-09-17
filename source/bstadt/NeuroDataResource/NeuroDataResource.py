@@ -27,6 +27,10 @@ class NeuroDataResource:
                 #TODO error handle here
                 raise
 
+    def assert_channel_exists(self, channel):
+            return channel in self._chanList.keys()
+
+
     def get_cutout(self, chan, zRange=None, yRange=None, xRange=None):
         if not chan in self._chanList.keys():
             print('Error: Channel Not Found in this Resource')
@@ -45,8 +49,9 @@ def test_function():
     #load ground truth file
     gt = io.imread('./data/gt.tiff')
 
-    host = 'api.boss.neurodata.io'
+    #api token is stored externally for security
     token = pickle.load(open('./data/token.pkl', 'rb'))
+    host = 'api.boss.neurodata.io'
     myResource = NeuroDataResource(host,
                                   token,
                                   'collman',
