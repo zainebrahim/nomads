@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.stats import mode
 from skimage.measure import label
 
 def get_unique_overlap(foreground, background, i):
@@ -7,14 +6,20 @@ def get_unique_overlap(foreground, background, i):
     Calculates the number of unique background labels in the foreground at i
     Does not count background label of 0
     '''
-    unique = np.unique(np.multiply((foreground == i).astype(int), background))
-    num_unique = len(unique)
+
+    #This runs about 4 times faster than np.unique()
+    overlaps = np.multiply((foreground == i), background)
+    bins = np.zeros(np.max(overlaps) + 1, dtype=int)
+    bins[overlaps.ravel()] = 1
+    uniques = np.nonzero(bins)[0]
+
+    num_unique = len(uniques)
 
     #0 is background label
     #should not count as a detection if
     #the prediction overlaps with the background
-    if 0 in unique:
-        num_unique-=1
+    if 0 in uniques:
+        num_unique -= 1
 
     return num_unique
 
