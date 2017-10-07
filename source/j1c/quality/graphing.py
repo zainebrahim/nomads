@@ -39,8 +39,8 @@ def graph_performance(overlap_dict, normed=True):
         ax[0].set_ylabel("Total number")
 
     #Plot stuff
-    for i, value in enumerate(overlap_dict.values()):
-        counts = np.bincount(value)
+    for i, key in enumerate(['predictionPerGt', 'gtPerPrediction']):
+        counts = np.bincount(overlap_dict[key])
 
         #Check if there are values > 2. If yes, put in 2 bin.
         if len(counts) > 3:
