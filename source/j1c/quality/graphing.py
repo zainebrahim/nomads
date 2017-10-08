@@ -2,26 +2,34 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def graph_performance(overlap_dict, normed=True):
+def graph_performance(overlap_dict, absolute=False, labels=None):
     """
     Graphs quantitative performance of an algorithm based on predictions
-    per gt and gt per predictions. 
+    per gt and gt per predictions.
 
     Parameters
     ----------
-    overlap_dict : dict
-        Dictionary holding information predictions per gt and 
+    overlap_dict : list or arr_like
+        Dictionary holding information predictions per gt and
         gt per predictions calculated from source/bstadt/Quality/Quality.py
-    normed : boolean, optional
-        If False, the data will be presented in absolute frequencies instead of
+    absolute : boolean, optional
+        If True, the data will be presented in absolute frequencies instead of
         relative frequencies
+    labels : list of str
     """
+    if labels is None:
+        labels = [None]
+
+    assert isinstance(labels, list)
+    assert len(overlap_dict) == len(
+        labels), 'Labels required when graphing 2 or more performances.'
+
     #Global settings
     plt.rc(('xtick', 'ytick'), labelsize=14)
     plt.rc('axes', titlesize=16, labelsize=14)
 
     #Create fig and ax
-    fig, ax = plt.subplots(1, 2, figsize=(10, 5.9), sharey=True)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5.9), sharey=True, legend=True)
 
     #Titles for figure and two subplots
     ax[0].set_title('Number of Predictions Per Synapse')
@@ -32,29 +40,39 @@ def graph_performance(overlap_dict, normed=True):
     ax[1].set_xticklabels(['False Positives', 'Correct', 'Merged'])
 
     #Set yaxis label and range accordingly
-    if normed:
+    if not absolute:
         ax[0].set_ylabel("% of population")
         ax[0].set_ylim(0, 100)
     else:
         ax[0].set_ylabel("Total number")
 
     #Plot stuff
-    for i, key in enumerate(['predictionPerGt', 'gtPerPrediction']):
-        counts = np.bincount(overlap_dict[key])
+    for i, label in enumerate(labels):
+        #Graphing settings
+        width = 0.8 / len(labels)
+        offset = np.arange(0, width * len(labels), width)
 
-        #Check if there are values > 2. If yes, put in 2 bin.
-        if len(counts) > 3:
-            counts = counts[0:2] + [np.sum(counts[2:])]
+        for j, key in enumerate(['predictionPerGt', 'gtPerPrediction']):
+            counts = np.bincount(overlap_dict[i][key])
 
-        if normed:
-            data = [x / sum(counts) * 100 for x in counts]
-        else:
-            data = counts
+            #Data validations
+            if len(counts) == 2:
+                counts = np.append(counts, [0])
+            elif len(counts) > 3:
+                counts = np.append(counts[0:2], [np.sum(counts[2:])])
 
-        ax[i].bar(range(3), data, width=0.8, align='center')
-        ax[i].set(xticks=range(3))
+            if not absolute:
+                data = [x / sum(counts) * 100 for x in counts]
+            else:
+                data = counts
+
+            ax[j].bar(np.arange(3) + offset[i], data,
+                      width=width, align='edge', label=label)
+            ax[j].set(xticks=np.arange(3) + .4)
 
     #Finishing touches
     fig.tight_layout()
+    if None not in labels:
+        plt.legend()
 
     return fig
