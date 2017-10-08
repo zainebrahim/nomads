@@ -2,26 +2,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def graph_performance(overlap_dict, absolute=False, labels=None):
+def graph_performance(overlaps, absolute=False, labels=None):
     """
     Graphs quantitative performance of an algorithm based on predictions
     per gt and gt per predictions.
 
     Parameters
     ----------
-    overlap_dict : list or arr_like
+    overlaps : list or arr_like
         Dictionary holding information predictions per gt and
         gt per predictions calculated from source/bstadt/Quality/Quality.py
     absolute : boolean, optional
         If True, the data will be presented in absolute frequencies instead of
-        relative frequencies
+        relative frequencies.
     labels : list of str
+        Required if you plot more than one algorithm performance.
     """
     if labels is None:
         labels = [None]
 
     assert isinstance(labels, list)
-    assert len(overlap_dict) == len(
+    assert len(overlaps) == len(
         labels), 'Labels required when graphing 2 or more performances.'
 
     #Global settings
@@ -53,7 +54,7 @@ def graph_performance(overlap_dict, absolute=False, labels=None):
         offset = np.arange(0, width * len(labels), width)
 
         for j, key in enumerate(['predictionPerGt', 'gtPerPrediction']):
-            counts = np.bincount(overlap_dict[i][key])
+            counts = np.bincount(overlaps[i][key])
 
             #Data validations
             if len(counts) == 2:
