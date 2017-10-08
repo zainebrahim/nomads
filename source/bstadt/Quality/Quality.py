@@ -35,13 +35,13 @@ def compute_overlap_array(predictions, gt):
     #first, look at how many unique predictions
     #overlap with a single gt synapse
     predictionPerGt = [get_unique_overlap(gtLabels, predictionLabels, i)\
-                       for i in range(1, maxGtLabel)]
+                       for i in range(1, maxGtLabel + 1)]
 
 
     #next, look at how many unique synapses overlap
     #with a single synapse prediction
     gtPerPrediction = [get_unique_overlap(predictionLabels, gtLabels, i)\
-                       for i in range(1, maxPredictionLabel)]
+                       for i in range(1, maxPredictionLabel + 1)]
 
     return {'predictionPerGt': predictionPerGt,
             'gtPerPrediction': gtPerPrediction}
