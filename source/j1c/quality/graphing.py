@@ -21,6 +21,7 @@ def graph_performance(overlaps, absolute=False, labels=None):
     if labels is None:
         labels = [None]
 
+    assert isinstance(overlaps, list), 'overlaps argument must be a list'
     assert isinstance(labels, list)
     assert len(overlaps) == len(
         labels), 'Labels required when graphing 2 or more performances.'
@@ -30,7 +31,7 @@ def graph_performance(overlaps, absolute=False, labels=None):
     plt.rc('axes', titlesize=16, labelsize=14)
 
     #Create fig and ax
-    fig, ax = plt.subplots(1, 2, figsize=(10, 5.9), sharey=True, legend=True)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5.9), sharey=True)
 
     #Titles for figure and two subplots
     ax[0].set_title('Number of Predictions Per Synapse')
