@@ -2,29 +2,46 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def graph_performance(overlaps, absolute=False, labels=None):
+def graph_performance(absolute=False, *args, **kwds):
     """
     Graphs quantitative performance of an algorithm based on predictions
-    per gt and gt per predictions.
+    per ground truth and ground truth per predictions.
+
+    If keyword arguments are given, then the label names are taken from
+    the keywords. If arguments are passed in with no keywords, then the
+    labels are label_0, label_1, etc.
 
     Parameters
     ----------
-    overlaps : list or arr_like
-        Dictionary holding information predictions per gt and
-        gt per predictions calculated from source/bstadt/Quality/Quality.py
     absolute : boolean, optional
         If True, the data will be presented in absolute frequencies instead of
         relative frequencies.
-    labels : list of str
-        Required if you plot more than one algorithm performance.
-    """
-    if labels is None:
-        labels = [None]
+    args : Arguments
+        Overlap dictionaries to plot. Since it is not possible to know what each
+        overlap dictionary refers to, the data will be plotted with labels
+        "label_0", "label_1", and so on.
+    kwds : Keyword Arguments
+        Overlap dictionaries to plot. Data will be plotted with the keyword labels.
 
-    assert isinstance(overlaps, list), 'overlaps argument must be a list'
-    assert isinstance(labels, list)
-    assert len(overlaps) == len(
-        labels), 'Labels required when graphing 2 or more performances.'
+    Examples
+    --------
+    >>> overlap_1 = compute_overlap_array(predictions_1, gt_1)
+    >>> overlap_2 = compute_overlap_array(predictions_2, gt_2)
+    >>> kwds = {'Label One': overlap_1, 'Label Two': overlap_2}
+    >>> graph_performance(**kwds)
+    """
+
+    labeldict = kwds
+
+    for i, val in enumerate(args):
+        key = 'label_%d' % i
+        if key in labeldict.keys():
+            raise ValueError(
+                "Cannot use un-named variables and keyword %s" % key)
+        labeldict[key] = val
+
+    labels = list(labeldict.keys())
+    overlaps = [labeldict[label] for label in labels]
 
     #Global settings
     plt.rc(('xtick', 'ytick'), labelsize=14)
@@ -74,7 +91,6 @@ def graph_performance(overlaps, absolute=False, labels=None):
 
     #Finishing touches
     fig.tight_layout()
-    if None not in labels:
-        plt.legend()
+    plt.legend()
 
     return fig
