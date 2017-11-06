@@ -1,3 +1,6 @@
+import numpy as np
+from random import randrange as rand
+
 def delta_epsilon(a, b, e):
     return abs(a-b) < e
 
