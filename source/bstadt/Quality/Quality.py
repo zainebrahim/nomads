@@ -71,7 +71,7 @@ def compute_overlap_array(predictions, gt, compare_annotations=False):
         predictions = label(predictions)
         prediction_uniques = get_uniques(predictions)[1:]
     elif compare_annotations:
-        prediction_uniques = get_uniques(predictions)
+        prediction_uniques = get_uniques(predictions)[1:]
 
     gt_uniques = get_uniques(gt)[1:]
 
