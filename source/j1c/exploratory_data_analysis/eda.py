@@ -1,25 +1,70 @@
 import itertools
 import numpy as np
-from skimage.measure import block_reduce
+from scipy.sparse import csr_matrix
 
 
-def calculate_centroid(arr, label):
+def calculate_centroid(img, fname=None):
+    """
+    Calculates the volumetric centroid of a sparsely labeled
+    image volume.
+
+    Parameters
+    ----------
+    img : 3d-array like
+        Sparsely labeled image (e.g. annotation)
+    fname : string, optional
+        File or file path to which the data is saved. The file
+        is saved as a numpy array.
+
+    Returns
+    -------
+    centroids : ndarray
+        List of all centroids in format (id, z, y, x)
+    """
+    sp_arr = csr_matrix(img.reshape(1, -1))
+
+    centroids = np.empty((len(sp_arr.data), 4))
+
+    for i, j in enumerate(np.unique(sp_arr.data)):
+        z, y, x = np.unravel_index(
+            sp_arr.indices[sp_arr.data == j], img.shape)
+        centroids[i] = i, np.mean(z), np.mean(y), np.mean(x)
+
+    if fname:
+        np.save(file, centroids)
+    else:
+        return centroids
+
+'''
+def calculate_centroid(img, label):
     """
     Calculates the volumetric centroid
 
     Parameters
     ----------
-    arr : 3d-array like
+    img : 3d-array like
     label : int
     """
-    out = np.transpose(np.nonzero(arr == label))
+    mask = img == label
+
+    z_bound, y_bound, x_bound = bounding_box(mask)
+
+    mask = mask[z_bound[0]:z_bound[1],
+                y_bound[0]:y_bound[1],
+                x_bound[0]:x_bound[1]]
+
+    out = np.transpose(np.nonzero(mask))
 
     z = np.mean(out[:, 0])
     y = np.mean(out[:, 1])
     x = np.mean(out[:, 2])
 
-    return (z, y, x)
+    centroid_z = z_bound[0] + z
+    centroid_y = y_bound[0] + y
+    centroid_x = x_bound[0] + x
 
+    return (centroid_z, centroid_y, centroid_x)
+'''
 
 def calculate_dimensions(centroid, dimensions, max_dimensions):
     """
@@ -115,24 +160,6 @@ def calculate_feature(centroids, channel, annotation, dimensions, max_dimensions
         around_synapse.append(tmp_around)
 
     return synapse, around_synapse
-
-
-def f1_inverse(annotation, channel, block_size, reduced=True):
-    a = np.mgrid[-5:6, -5:6]
-    distance_matrix = np.sqrt(np.add(np.square(a[0]), np.square(a[1])))
-
-    if reduced:
-        synapse_sum = 0
-        around_synapse_sum = 0
-
-        annotation = block_reduce(annotation, block_size, np.mean)
-        channel = block_reduce(channel, block_size, np.mean)
-        
-        for arr in channel:
-            synapse_sum += np.sum(np.multiply(np.multiply(annotation > 0, arr), distance_matrix))
-            around_synapse_sum += np.sum(np.multiply(np.multiply(annotation == 0, arr), distance_matrix))
-
-    return synapse_sum, around_synapse_sum
 
 
 def get_random_non_synapse(mask, annotation):
