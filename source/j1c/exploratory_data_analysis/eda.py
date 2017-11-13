@@ -19,19 +19,20 @@ def calculate_centroid(img, fname=None):
     Returns
     -------
     centroids : ndarray
-        List of all centroids in format (id, z, y, x)
+        List of all centroids in format (label, z, y, x)
     """
     sp_arr = csr_matrix(img.reshape(1, -1))
+    uniques = np.unique(sp_arr.data)
 
-    centroids = np.empty((len(sp_arr.data), 4))
+    centroids = np.empty((len(uniques), 4))
 
-    for i, j in enumerate(np.unique(sp_arr.data)):
+    for i, label in enumerate(uniques):
         z, y, x = np.unravel_index(
-            sp_arr.indices[sp_arr.data == j], img.shape)
-        centroids[i] = i, np.mean(z), np.mean(y), np.mean(x)
+            sp_arr.indices[sp_arr.data == label], img.shape)
+        centroids[i] = label, np.mean(z), np.mean(y), np.mean(x)
 
     if fname:
-        np.save(file, centroids)
+        np.save(fname, centroids)
     else:
         return centroids
 
