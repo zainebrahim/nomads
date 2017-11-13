@@ -2,7 +2,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 
-def bounding_box2(img, fname=None):
+def bounding_box(img, fname=None):
     """
     Returns all z, y, x vectors that create a bounding box
     of a mask.
