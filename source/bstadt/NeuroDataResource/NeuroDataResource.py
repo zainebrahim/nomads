@@ -9,24 +9,21 @@ class NeuroDataResource:
                                        'token': token})
         self.collection = collection
         self.experiment = experiment
-        self._coord_frame = self._get_coord_frame()
-        self.max_dimensions, self.voxel_size = self._get_coord_frame_details()
-
         self.channels = self._bossRemote.list_channels(collection, experiment)
         self.channels.remove('empty') #Delete "empty" channel
+        self._get_coord_frame_details()
 
-    def _get_coord_frame(self):
-        resource = ExperimentResource(self.experiment, self.collection)
-        return self._bossRemote.get_project(resource).coord_frame
 
     def _get_coord_frame_details(self):
-        resource = CoordinateFrameResource(self._coord_frame)
-        data = self._bossRemote.get_project(resource)
+        exp_resource = ExperimentResource(self.experiment, self.collection)
+        coord_frame = self._bossRemote.get_project(exp_resource).coord_frame
 
-        max_dimensions = (data.z_stop, data.y_stop, data.x_stop)
-        voxel_size = (data.z_voxel_size, data.y_voxel_size, data.x_voxel_size)
+        coord_frame_resource = CoordinateFrameResource(coord_frame)
+        data = self._bossRemote.get_project(coord_frame_resource)
 
-        return max_dimensions, voxel_size
+        self.max_dimensions = (data.z_stop, data.y_stop, data.x_stop)
+        self.voxel_size = (data.z_voxel_size, data.y_voxel_size, data.x_voxel_size)
+
 
     def _get_channel(self, chan_name):
         """
