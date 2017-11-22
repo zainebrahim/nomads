@@ -50,13 +50,19 @@ class NeuroDataResource:
             return
 
         channel_resource = self._get_channel(chan)
+        datatype = channel_resource.datatype
 
         data = self._bossRemote.get_cutout(channel_resource,
                                            0,
                                            xRange,
                                            yRange,
                                            zRange)
-        return data
+
+        #Datatype check. Recast to original datatype if data is float64
+        if data.dtype == datatype:
+            return data
+        else:
+            return data.astype(datatype)
 
 """
 def test_function():
