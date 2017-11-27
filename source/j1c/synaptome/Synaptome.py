@@ -2,10 +2,12 @@ import numpy as np
 import pandas as pd
 import sys
 sys.path.append('../../bstadt/NeuroDataResource')
+from functools import partial
+from multiprocessing import Pool
+from multiprocessing.dummy import Pool as ThreadPool 
 from NeuroDataResource import NeuroDataResource
 from scipy.sparse import csr_matrix
-from tqdm import tqdm_notebook
-from time import sleep
+
 
 class Synaptome:
     """
@@ -28,6 +30,7 @@ class Synaptome:
         self._resource = NeuroDataResource(host, token, collection, experiment)
         self.channels = self._resource.channels
         self.max_dimensions = self._resource.max_dimensions
+        self.voxel_size = self._resource.voxel_size
         self.labels = None
         self.centroids = None
 
@@ -47,18 +50,15 @@ class Synaptome:
         assert np.any(self.centroids) != None, "Please run calculate_centroids method."
 
         dimensions = self._calculate_dimensions(self.centroids, size, self.max_dimensions)
-
-        data = np.empty((len(dimensions), len(channel_list)))
+        data = np.empty((len(dimensions), len(channel_list)), dtype=np.uint64)
 
         for i, channel in enumerate(channel_list):
-            for j, dimension in tqdm_notebook(enumerate(dimensions), total=len(data), desc=channel):
-                z, y, x = dimension
+            print('Calculating features on {}'.format(channel))
+            with ThreadPool(processes=8) as tp: #optimum number of connections is 8
+                func = partial(self._resource.get_cutout, channel)
+                results = tp.starmap(func, dimensions)
+                data[:, i] = np.array(list(map(np.sum, results)))
 
-                img = self._resource.get_cutout(channel, z, y, x)
-
-                data[j, i] = np.sum(img)
-                sleep(0.01)
-        
         return pd.DataFrame(data, index=self.labels, columns=channel_list)
 
 
@@ -85,13 +85,11 @@ class Synaptome:
                                         [0, self.max_dimensions[0]], 
                                         [0, self.max_dimensions[1]], 
                                         [0, self.max_dimensions[2]])
-        print("Finished downloading {}".format(annotation_channel))
 
         print("Calculating centroids")
         sp_arr = csr_matrix(img.reshape(1, -1))
         uniques = np.unique(sp_arr.data)
 
-        labels = np.empty(len(uniques))
         centroids = np.empty((len(uniques), 3))
 
         for i, label in enumerate(uniques):
@@ -99,11 +97,9 @@ class Synaptome:
                 sp_arr.indices[sp_arr.data == label], img.shape)
 
             centroids[i] = np.mean(z), np.mean(y), np.mean(x)
-            labels[i] = label
-        print("Finished calculating centroids")
 
         self.centroids = centroids
-        self.labels = labels
+        self.labels = uniques
 
 
     def _calculate_dimensions(self, centroids, size, max_dimensions):
