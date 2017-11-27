@@ -7,7 +7,7 @@ from scipy.sparse import csr_matrix
 from tqdm import tqdm_notebook
 from time import sleep
 
-class DataBox:
+class Synaptome:
     """
     TODO: Write docs. Also open for suggestions for class name. 
     """
