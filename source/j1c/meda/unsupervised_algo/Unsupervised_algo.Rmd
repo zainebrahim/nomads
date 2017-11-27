@@ -51,6 +51,9 @@ runAll <- function(dat, ccol = "black", trans = NULL, ...){
   print("Running cumvar")
   outL$cumvarDat <- cumvar(dat)
   
+  print("Running outliers")
+  outL$outliersDat <- outliers(dat)
+  
   print("Running pairHex")
   outL$pairHexDat <- invisible(pairhex(dat, maxd = 6))
 
@@ -69,13 +72,16 @@ runAll <- function(dat, ccol = "black", trans = NULL, ...){
 ```
 
 ```{r, eval = FALSE}
-tp <- read.csv("unsupervised_true_positives.csv")
-fn <- read.csv("unsupervised_false_negatives.csv")
+tp <- read.csv("unsupervised_true_positives_mean.csv")
+fn <- read.csv("unsupervised_false_negatives_mean.csv")
+
+tp <- tp[c('DAPI1st', 'DAPI2nd', 'DAPI3rd', 'MBP488', 'GABA488', 'GAD647', 'gephyrin594', 'Synapsin647', 'VGluT1_647', 'GS594','PSD95_488', 'NR1594')]
+fn <- fn[c('DAPI1st', 'DAPI2nd', 'DAPI3rd', 'MBP488', 'GABA488', 'GAD647', 'gephyrin594', 'Synapsin647', 'VGluT1_647', 'GS594','PSD95_488', 'NR1594')]
 
 stp <- scale(tp, center = TRUE, scale = TRUE)
 sfn <- scale(fn, center = TRUE, scale = TRUE)
 
-ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'black', 'green', 'green', 'green')
+ccol <- c('blue', 'blue', 'blue', 'blue', 'red', 'red', 'red', 'green', 'green', 'green', 'dark green', 'dark green')
 
 set.seed(3173)
 Ltp <- runAll(stp, ccol = ccol)
@@ -105,11 +111,16 @@ p2 <- plot(Lfn[[3]])
 grid.arrange(p1,p2)
 dev.off()
 
+png("meda_plots_cubes/outliers.png", width = w, height = h)
+p1 <- plot(Ltp[[4]]) 
+p2 <- plot(Lfn[[4]])
+grid.arrange(p1,p2)
+dev.off()
 
 png("meda_plots_cubes/cor.png", width = w, height = 2*h)
 par(mfrow=c(2,1))
-plot(Ltp[[5]]) 
-plot(Lfn[[5]])
+plot(Ltp[[6]]) 
+plot(Lfn[[6]])
 dev.off()
 
 png("meda_plots_cubes/pairhexTp.png", width = 2*w, height = 2*h)
@@ -119,14 +130,17 @@ dev.off()
 png("meda_plots_cubes/pairhexFn.png", width = 2*w, height = 2*h)
 pairhex(sfn)
 dev.off()
-```
 
+```
 
 # 1-d Heatmap
 ![](meda_plots_cubes/d1heat.png)
 
 # Location meda_plots
 ![](meda_plots_cubes/mlocation.png)
+
+## Outliers as given by randomForest
+![](meda_plots_cubes/outliers.png)
 
 # Correlation Matrix
 ![](meda_plots_cubes/cor.png)
