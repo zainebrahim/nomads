@@ -71,13 +71,6 @@ class Synaptome:
         ----------
         annotation_channel : str
             Name of sparsely labeled image channel
-
-        Returns
-        -------
-        labels : ndarray
-            List of all
-        centroids : ndarray
-            List of all centroids in format (z, y, x).
         """
 
         print("Downloading {} channel".format(annotation_channel))
