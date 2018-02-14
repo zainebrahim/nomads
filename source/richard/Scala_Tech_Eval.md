@@ -14,6 +14,10 @@ There are three popular options for combining code from Scala and Python. These 
 
 From what I've read so far, Scala is great for handling big data and serving as an application for launching big data jobs. However, for the actual data science process, Python serves as the better final layer due to its libraries. Scala does have its own set of machine learning/ stats libraries but they just aren't as good.
 
+From the architecture of PySpark, we can however see that Scala might be useful when we arrive at distributed computing. Scala seems to be much faster and better than Python when it comes to generating and controlling workers on different processes running the same pipeline.
+
+That is, we cannot use Scala to parallelize the algorithm but can use it to run multiple copies of the same algorithm across multipile nodes. 
+
 Sources:
 
 https://databricks.com/blog/2016/01/25/deep-learning-with-apache-spark-and-tensorflow.html
@@ -25,3 +29,5 @@ https://github.com/ninia/jep/wiki/Jep-and-the-GIL
 https://github.com/scalala/Scalala/wiki
 
 https://datasciencevademecum.wordpress.com/2016/01/28/6-points-to-compare-python-and-scala-for-data-science-using-apache-spark/
+
+https://cwiki.apache.org/confluence/display/SPARK/PySpark+Internals
