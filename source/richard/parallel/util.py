@@ -4,15 +4,14 @@ import intern.utils.parallel as intern
 
 ## Block class to organize the data at the every end. Not needed but nice to have
 class Block:
-    def __init__(self, z_range, y_range, x_range, data):
+    def __init__(self, z_range, y_range, x_range):
         self.x_start = x_range[0]
         self.x_end = x_range[1]
         self.y_start = y_range[0]
         self.y_end = y_range[1]
         self.z_start = z_range[0]
         self.z_end = z_range[1]
-        self.data = data
-
+        self.data = None
 
 
 

@@ -74,7 +74,7 @@ def get_boss_config(boss_config_file):
 
     remote_metadata = {}
     remote_metadata["token"] = config['Default']['token']
-    remote_metadata["boss_host"] = config['Default']['host']
+    remote_metadata["host"] = config['Default']['host']
     remote_metadata["experiment"] = config['Nomads']['experiment']
     remote_metadata["collection"] = config['Nomads']['collection']
     return remote_metadata
@@ -83,6 +83,6 @@ def get_boss_config(boss_config_file):
     Instantiate resource
 '''
 def get_boss_resource(config_file):
-    config = ndr.get_boss_config(config_file)
+    config = get_boss_config(config_file)
     resource = NeuroDataResource(config["host"], config["token"], config["collection"], config["experiment"])
     return resource
