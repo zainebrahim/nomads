@@ -5,6 +5,9 @@ from util import Block
 import NOMADS_pipeline as algo
 import pickle
 from functools import partial
+from skimage.measure import block_reduce as pool
+import numpy as np
+
 
 """
     This function is designed to compute proper block sizes (less than 2 gb)
@@ -22,24 +25,46 @@ def compute_blocks(resource):
     return blocks
 
 def get_data(resource, block):
-    data = {}
-    z_range = [block.z_start, block.z_end]
     y_range = [block.y_start, block.y_end]
     x_range = [block.x_start, block.x_end]
-    for chan in resource.channels:
-        if "DAPI" in chan:
-            continue
-        else:
-            data[chan] = resource.get_cutout(chan, z_range, y_range, x_range)
+
+    cutouts = {}
+
+    for i in range(block.z_start, block.z_end):
+        for key in resource.channels:
+            if "psd" in key.lower() or "synapsin" in key.lower():
+                raw = resource.get_cutout(chan=key, zRange=[i, i+1], yRange=y_range, xRange=x_range)[0]
+
+                cutout = pool(raw, (36, 36), np.mean)
+                if key in cutouts.keys():
+                    cutouts[key].append(cutout)
+                else:
+                    cutouts[key] = [cutout]
+    data = []
+    for elem in cutouts:
+        data.append(np.stack(cutouts[elem]))
+    data = np.stack(data)
+    print(data.shape)
+    #if len([True for elem in data.shape[1:] if elem < 20]):
+    #    print("Skipping block")
+    #    return
+
     block.data = data
-    print(data["GABA"])
+    print(data.shape)
     return block
 
 def nomads(block, resource):
     block = get_data(resource, block)
-    result = algo.pipeline(block.data)
+    try:
+        result = algo.pipeline(block.data)
+    except Exception as ex:
+        print(ex)
+        print("ran into error in algo, exiting this chunk")
+        return
+
     key = str(block.z_start) + "_" + str(block.y_start) + "_" + str(block.x_start)
-    pickle.dump(open(key, "wb"), result)
+    #pickle.dump(result, open(key, "wb"))
+    print("Done with job")
     return key
 
 def run_parallel(config_file, cpus = None):

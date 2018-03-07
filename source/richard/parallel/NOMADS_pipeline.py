@@ -31,6 +31,8 @@ def remove_low_volume_predictions(label_img, thresh):
 def z_transform(img):
     sigma = np.std(img)
     mu = np.average(img)
+    if np.allclose(sigma, 0):
+        return np.zeros_like(img).astype(float)
     return (img - mu)/sigma
 
 
