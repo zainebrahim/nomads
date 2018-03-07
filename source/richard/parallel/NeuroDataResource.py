@@ -11,7 +11,6 @@ class NeuroDataResource:
         self.collection = collection
         self.experiment = experiment
         self.channels = self._bossRemote.list_channels(collection, experiment)
-        self.channels.remove('empty') #Delete "empty" channel
         self._get_coord_frame_details()
 
 
@@ -84,5 +83,9 @@ def get_boss_config(boss_config_file):
 '''
 def get_boss_resource(config_file):
     config = get_boss_config(config_file)
+    resource = create_resource(config)
+    return resource
+
+def create_resource(config):
     resource = NeuroDataResource(config["host"], config["token"], config["collection"], config["experiment"])
     return resource
