@@ -13,29 +13,6 @@ class Block:
         self.z_end = z_range[1]
         self.data = None
 
-
-
-
-"""
-
-class Block:
-    def __init__(self, key, img_block):
-        coords = key.split("_")
-        self.z_start = int(coords[0])
-        self.y_start = int(coords[1])
-        self.x_start = int(coords[2])
-
-        z, y, x, c = img_block.shape
-
-        self.z_end = self.z_start + z
-        self.y_end = self.y_start + y
-        self.x_end = self.x_start + x
-
-        self.key = key
-        self.data = img_block
-
-
-
 ## merge data, does not handle padding
 def merge(img_blocks, orig_shape):
     block_list = []
@@ -98,4 +75,13 @@ def split_data_padded(data, block_size, padding):
         block_id = str(z_start) + "_" + str(y_start) + "_" + str(x_start)
         img_blocks[block_id] = img_block
     return img_blocks
-"""
+
+
+def format_data_to_cube(data_dict):
+    data = []
+    for chan in data_dict:
+        data.append(chan)
+    data = np.stack(data)
+    ## Verify data is correct for user
+    print("Data shape is:\t" + str(data.shape))
+    return data

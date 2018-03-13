@@ -46,7 +46,27 @@ def predict_from_feature_map(feature_map):
     return predictions
 
 
+def format_data(data_dict):
+    data = []
+    for chan in data_dict:
+        format_slice = []]
+        for z in chan.shape[0]:
+            raw = chan[z]
+            if (raw.dtype != np.dtype("uint8")):
+                info = np.iinfo(raw.dtype) # Get the information of the incoming image type
+                raw = raw.astype(np.float64) / info.max # normalize the data to 0 - 1
+                raw = 255 * raw # Now scale by 255
+                raw = raw.astype(np.uint8)
+            format_slice.append(raw)
+        data.append(np.stack(format_slice))
+    data = np.stack(data)
+    ## Verify data is correct for user
+    print("Data shape is:\t" + str(data.shape))
+    return data
+
+
 def pipeline(input_data, verbose=False):
+    data = format_data(input_data)
     if verbose:
         print('Normalizing Data')
     normed_data = normalize_data(input_data)

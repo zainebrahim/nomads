@@ -4,12 +4,16 @@ from intern.resource.boss.resource import ChannelResource, ExperimentResource, C
 import configparser
 
 class NeuroDataResource:
-    def __init__(self, host, token, collection, experiment):
+    def __init__(self, host, token, collection, experiment, requested_channels):
         self._bossRemote = BossRemote({'protocol': 'https',
                                        'host': host,
                                        'token': token})
         self.collection = collection
         self.experiment = experiment
+        if len(requested_channels) == 0:
+            self.requested_channels = self.channels
+        else:
+            self.requested_channels = requested_channels
         self.channels = self._bossRemote.list_channels(collection, experiment)
         self._get_coord_frame_details()
 
@@ -74,8 +78,12 @@ def get_boss_config(boss_config_file):
     remote_metadata = {}
     remote_metadata["token"] = config['Default']['token']
     remote_metadata["host"] = config['Default']['host']
-    remote_metadata["experiment"] = config['Nomads']['experiment']
-    remote_metadata["collection"] = config['Nomads']['collection']
+    remote_metadata["experiment"] = config['Parallel']['experiment']
+    remote_metadata["collection"] = config['Parallel']['collection']
+
+    channels = config["Parallel"]["channels"]
+    channels = channels.split(",")
+    remote_metadata["channels"] = channels
     return remote_metadata
 
 '''
@@ -87,5 +95,5 @@ def get_boss_resource(config_file):
     return resource
 
 def create_resource(config):
-    resource = NeuroDataResource(config["host"], config["token"], config["collection"], config["experiment"])
+    resource = NeuroDataResource(config["host"], config["token"], config["collection"], config["experiment"], config["channels"])
     return resource
