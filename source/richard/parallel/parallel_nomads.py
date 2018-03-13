@@ -5,7 +5,6 @@ from util import Block
 import pipeline as pipeline
 import pickle
 from functools import partial
-from skimage.measure import block_reduce as pool
 import numpy as np
 
 
@@ -32,12 +31,8 @@ def get_data(resource, block):
 
     for key in resource.requested_channels:
         if key in resource.channels:
-            raw = resouce.get)cutout(chan = key, zRange = z_range, yRange=y_range, XRange=x_range)
+            raw = resource.get_cutout(chan = key, zRange = z_range, yRange=y_range, xRange=x_range)
             cutouts[key] = raw
-
-
-
-
     block.data = cutouts
     return block
 
@@ -45,7 +40,7 @@ def job(block, resource):
 
     print("Starting job, retrieiving data")
     block = get_data(resource, block)
-
+    print("Starting algorithm")
     try:
         result = pipeline.pipeline(block.data)
     except Exception as ex:
@@ -63,7 +58,7 @@ def run_parallel(config_file, cpus = None):
     resource = ndr.get_boss_resource(config_file)
     blocks = compute_blocks(resource)
     ## prepare job by fixing NeuroDataRresource argument
-    job = partial(job, resource = resource)
+    task = partial(job, resource = resource)
 
     ## Prepare pool
     num_workers = cpus
@@ -71,7 +66,7 @@ def run_parallel(config_file, cpus = None):
         num_workers = mp.cpu_count() - 1
     pool = mp.Pool(num_workers)
     try:
-        print(pool.map(job, blocks))
+        print(pool.map(task, blocks))
     except:
         pool.terminate()
         print("Parallel failed, closing pool and exiting")

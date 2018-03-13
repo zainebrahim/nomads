@@ -1,9 +1,8 @@
 import numpy as np
-
 from skimage.measure import label
-from NOMADS_io import load_file, dump_file
 from skimage.filters import threshold_otsu
 from scipy.ndimage.filters import convolve
+from skimage.measure import block_reduce as pool
 
 
 def compute_convolutional_cov(vol1, vol2, kernel_shape):
@@ -31,8 +30,6 @@ def remove_low_volume_predictions(label_img, thresh):
 def z_transform(img):
     sigma = np.std(img)
     mu = np.average(img)
-    if np.allclose(sigma, 0):
-        return np.zeros_like(img).astype(float)
     return (img - mu)/sigma
 
 
@@ -48,20 +45,19 @@ def predict_from_feature_map(feature_map):
 
 def format_data(data_dict):
     data = []
-    for chan in data_dict:
-        format_slice = []]
-        for z in chan.shape[0]:
-            raw = chan[z]
+    for chan, value in data_dict.items():
+        format_chan = []
+        for z in range(value.shape[0]):
+            raw = value[z]
             if (raw.dtype != np.dtype("uint8")):
                 info = np.iinfo(raw.dtype) # Get the information of the incoming image type
                 raw = raw.astype(np.float64) / info.max # normalize the data to 0 - 1
                 raw = 255 * raw # Now scale by 255
                 raw = raw.astype(np.uint8)
-            format_slice.append(raw)
-        data.append(np.stack(format_slice))
+            raw = pool(raw, (36, 36), np.mean)
+            format_chan.append(raw)
+        data.append(np.stack(format_chan))
     data = np.stack(data)
-    ## Verify data is correct for user
-    print("Data shape is:\t" + str(data.shape))
     return data
 
 
@@ -69,8 +65,7 @@ def pipeline(input_data, verbose=False):
     data = format_data(input_data)
     if verbose:
         print('Normalizing Data')
-    normed_data = normalize_data(input_data)
-
+    normed_data = normalize_data(data)
     if verbose:
         print('Generating Covariance Map')
     cov_map = compute_convolutional_cov(normed_data[0],

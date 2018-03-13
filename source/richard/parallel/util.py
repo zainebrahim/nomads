@@ -79,8 +79,8 @@ def split_data_padded(data, block_size, padding):
 
 def format_data_to_cube(data_dict):
     data = []
-    for chan in data_dict:
-        data.append(chan)
+    for chan, value in data_dict.items():
+        data.append(value)
     data = np.stack(data)
     ## Verify data is correct for user
     print("Data shape is:\t" + str(data.shape))
