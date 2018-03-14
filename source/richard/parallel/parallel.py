@@ -2,7 +2,8 @@ import NeuroDataResource as ndr
 import intern.utils.parallel as intern
 import multiprocessing as mp
 from util import Block
-import pipeline as pipeline
+import sys
+from importlib import import_module
 import pickle
 from functools import partial
 import numpy as np
@@ -36,13 +37,13 @@ def get_data(resource, block):
     block.data = cutouts
     return block
 
-def job(block, resource):
+def job(block, resource, function = None):
 
     print("Starting job, retrieiving data")
     block = get_data(resource, block)
     print("Starting algorithm")
     try:
-        result = pipeline.pipeline(block.data)
+        result = function(block.data)
     except Exception as ex:
         print(ex)
         print("Ran into error in algorithm, exiting this block")
@@ -53,12 +54,12 @@ def job(block, resource):
     print("Done with job")
     return key
 
-def run_parallel(config_file, cpus = None):
+def run_parallel(config_file, cpus = None, function = None):
     ## Make resource and compute blocks
     resource = ndr.get_boss_resource(config_file)
     blocks = compute_blocks(resource)
     ## prepare job by fixing NeuroDataRresource argument
-    task = partial(job, resource = resource)
+    task = partial(job, resource = resource, function = function)
 
     ## Prepare pool
     num_workers = cpus
@@ -74,6 +75,10 @@ def run_parallel(config_file, cpus = None):
     pool.terminate()
 
 if __name__ == "__main__":
-    run_parallel("neurodata.cfg")
-    #resource = ndr.get_boss_resource("neurodata.cfg")
-    #nomads(Block((50, 60), (5000, 6000), (5000, 6000)), resource)
+    if len(sys.argv) != 3:
+        print("Provide module, function as arguments")
+        sys.exit(-1)
+    #TODO: integrate argparser
+    mod = import_module(sys.argv[1])
+    function = getattr(mod, sys.argv[2])
+    run_parallel("neurodata.cfg", function = function)
