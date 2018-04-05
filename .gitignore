@@ -1,0 +1,12 @@
+/source/j1c/data
+bstadt/
+.ipynb_checkpoints/
+__pycache__/
+
+#R files
+.Rproj.user
+__packages
+.RData
+.rdb
+.rdx
+.Rhistory
