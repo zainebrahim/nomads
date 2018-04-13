@@ -23,7 +23,7 @@ def compute_blocks(resource):
     y_start, y_end = resource.y_range
     z_start, z_end = resource.z_range
 
-    block_size = (1000, 1000, 10)
+    block_size = (1000, 1000, 25)
     blocks = intern.block_compute(x_start, x_end, y_start, y_end, z_start, z_end, (0, 0, 0), block_size)
     ### IMPORTANT blocks are returned as x, y, z ###
     for i in range(len(blocks)):
@@ -72,19 +72,15 @@ def job(block, resource, function = None):
                     connected_components[synapse_labels[z][y][x]].append((z, y, x))
                 else:
                     connected_components[synapse_labels[z][y][x]] = [(z, y, x)]
-
     connected_components.pop(0)
-    
     
     synapse_centroids = []
     for key, value in connected_components.items():
-        y, x = zip(*value)
-        synapse_centroids.append((int(sum(y)/len(y)), int(sum(x)/len(x))))
-        
+        z, y, x = zip(*value)
+        synapse_centroids.append((int(sum(z)/len(z)), int(sum(y)/len(y)), int(sum(x)/len(x))))
     
-    
-    data = block.raw_data
-    data = util.load_and_preproc(data)
+    data = block.raw
+    data = load_and_preproc(data)
     data_dict = driver.get_aggregate_sum(synapse_centroids, data)
     df = driver.get_data_frame(data_dict)
     

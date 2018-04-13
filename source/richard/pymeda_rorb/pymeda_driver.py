@@ -6,8 +6,8 @@ def get_aggregate_sum(synapse_centroids, data):
     data_dictionary = dict((key, []) for key in data.keys())
     for centroid in synapse_centroids:
         z, y, x = centroid
-        z_lower = z - 11
-        z_upper = z + 11
+        z_lower = z - 5
+        z_upper = z + 5
         y_lower = y - 11
         y_upper = y + 11
         x_lower = x - 11
@@ -28,4 +28,6 @@ def get_data_frame(data_dict):
     df = pd.DataFrame(data_dict)
     df = df.loc[:, (df != 0).any(axis=0)]
     return df
+    
+
     

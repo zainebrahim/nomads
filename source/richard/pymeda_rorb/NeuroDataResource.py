@@ -96,7 +96,6 @@ def get_boss_config(boss_config_file):
     remote_metadata["x_range"] = list(map(int, x_range))
     
     y_range = config["Parallel"]["y_range"]
-    print(y_range)
     y_range = y_range.split(",")
     remote_metadata["y_range"] = list(map(int, y_range))
     
