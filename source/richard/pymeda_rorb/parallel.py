@@ -42,7 +42,7 @@ def get_data(resource, block):
             raw = resource.get_cutout(chan = key, zRange = z_range, yRange=y_range, xRange=x_range)
             cutouts[key] = raw
             raw_data[key] = raw
-            
+
     for key in resource.channels:
         if key not in resource.requested_channels:
             raw = resource.get_cutout(chan = key, zRange = z_range, yRange = y_range, xRange = x_range)
@@ -62,7 +62,7 @@ def job(block, resource, function = None):
         print(ex)
         print("Ran into error in algorithm, exiting this block")
         return
-        
+
     synapse_labels = measure.label(result, background=0)
     connected_components = {}
     for z in range(synapse_labels.shape[0]):
@@ -73,17 +73,17 @@ def job(block, resource, function = None):
                 else:
                     connected_components[synapse_labels[z][y][x]] = [(z, y, x)]
     connected_components.pop(0)
-    
+
     synapse_centroids = []
     for key, value in connected_components.items():
         z, y, x = zip(*value)
         synapse_centroids.append((int(sum(z)/len(z)), int(sum(y)/len(y)), int(sum(x)/len(x))))
-    
+
     data = block.raw
     data = load_and_preproc(data)
     data_dict = driver.get_aggregate_sum(synapse_centroids, data)
     df = driver.get_data_frame(data_dict)
-    
+
     key = str(block.z_start) + "_" + str(block.y_start) + "_" + str(block.x_start)
     df.to_csv(key + ".csv", sep='\t')
     print("Done with job")
@@ -95,7 +95,7 @@ def run_parallel(config_file, cpus = None, function = None):
     blocks = compute_blocks(resource)
     ## prepare job by fixing NeuroDataRresource argument
     task = partial(job, resource = resource, function = function)
-    
+    print("starting parallel")
     ## Prepare pool
     num_workers = cpus
     if num_workers is None:
