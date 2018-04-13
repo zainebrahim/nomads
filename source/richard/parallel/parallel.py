@@ -14,10 +14,23 @@ import numpy as np
     when given a NDR
 """
 
-def compute_blocks(resource):
+def compute_blocks(resource, x_start = 0,
+                             x_end = None,
+                             y_start = 0,
+                             y_end = None,
+                             z_start = 0,
+                             z_end = None):
     z, y, x = resource.max_dimensions
+
+    if x_end == None:
+        x_end = x
+    if y_end == None:
+        y_end = y
+    if z_end == None:
+        z_end = z
+
     block_size = (1000, 1000, 10)
-    blocks = intern.block_compute(0, x, 0, y, 0, z, (0, 0, 0), block_size)
+    blocks = intern.block_compute(x_start, x_end, y_start, y_end, z_start, z_end, (0, 0, 0), block_size)
     ### IMPORTANT blocks are returned as x, y, z ###
     for i in range(len(blocks)):
         x_range, y_range, z_range = blocks[i]
