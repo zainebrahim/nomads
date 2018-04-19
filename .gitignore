@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /source/j1c/data
 bstadt/
 .ipynb_checkpoints/
@@ -10,3 +11,6 @@ __packages
 .rdb
 .rdx
 .Rhistory
+=======
+source/bvarjavand/neurodata.cfg
+>>>>>>> 1aa45bbf950917fceb08ff7a18a10323074dece6
