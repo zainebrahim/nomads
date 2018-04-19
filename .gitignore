@@ -13,4 +13,8 @@ __packages
 .Rhistory
 =======
 source/bvarjavand/neurodata.cfg
+<<<<<<< HEAD
 >>>>>>> 1aa45bbf950917fceb08ff7a18a10323074dece6
+=======
+source/bvarjavand/meshes/neurodata.cfg
+>>>>>>> 645270a3b920113dfc50c902d95e6e1cd9498d29
