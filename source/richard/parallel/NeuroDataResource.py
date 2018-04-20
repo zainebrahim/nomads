@@ -14,14 +14,17 @@ class NeuroDataResource:
                                        'token': token})
         self.collection = collection
         self.experiment = experiment
+
+        self.channels = self._bossRemote.list_channels(collection, experiment)
+
         if len(requested_channels) == 0:
             self.requested_channels = self.channels
         else:
             self.requested_channels = requested_channels
-        self.channels = self._bossRemote.list_channels(collection, experiment)
+        
         self._get_coord_frame_details()
         # validate range
-        if not correct_range(z_range, y_range, x_range):
+        if not self.correct_range(z_range, y_range, x_range):
             raise Exception("Error: Inccorect dimension range")
 
         self.x_range = x_range

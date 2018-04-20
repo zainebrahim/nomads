@@ -7,8 +7,7 @@ from importlib import import_module
 import pickle
 from functools import partial
 import numpy as np
-from skimage import measure
-from skimage import filters
+
 import pymeda_driver as driver
 
 
