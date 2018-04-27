@@ -1,9 +1,10 @@
 from nomads import pipeline
 from NeuroDataResource import NeuroDataResource
-from pymeda_driver import 
+import pymeda_driver
 import argparse
 import pickle
 import numpy as np
+import boto3, glob
 
 # pull data from BOSS
 def get_data(host, token, col, exp, z_range, y_range, x_range):
@@ -46,21 +47,37 @@ def run_nomads(data_dict):
     print("Finished NOMADS Pipeline.")
     return results
     
-def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results"):
+def upload_results(path, results_key):
+    client = boto3.client('s3')
+    s3_bucket_exists_waiter = client.get_waiter('bucket_exists')
+    bucket = client.create_bucket(Bucket="nomads-unsupervised-results")
+    s3_bucket_exists_waiter.wait(Bucket="nomads-unsupervised-results")
+    files = glob.glob(path+"*")
+    for file in files:
+        key = results_key + "/" + file.split("/")[-1]
+        client.upload_file(file, "nomads-unsupervised-results", key)
+    return
+
+## PLEASE HAVE / AT END OF PATH
+## BETTER YET DONT TOUCH PATH
+def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"):
+    
     print("Generating PyMeda Plots...")
     info = locals()
     data_dict = get_data(host, token, col, exp, z_range, y_range, x_range)
     
     results = run_nomads(data_dict)
-    results_name = "_".join([col, exp, "z", str(z_range[0]), str(z_range[1]), "y", \
+    
+    results_key = "_".join([col, exp, "z", str(z_range[0]), str(z_range[1]), "y", \
     str(y_range[0]), str(y_range[1]), "x", str(x_range[0]), str(x_range[1])])
     
-    pickle.dump(results, open(results_name, "wb"))
-    print("Saved pickled results (np array) {} in {}".format(results_name, path))
+    pickle.dump(results, open(path + results_key + ".pkl", "wb"))
+    print("Saved pickled results (np array) {} in {}".format(results_key, path))
     
     title = "PyMeda Plots on {}".format(exp)
     pymeda_driver.pymeda_pipeline(results, data_dict, title = title, path = path)
-    print("Saved PyMeda Plots (html) in {}".format(path))
+    
+    upload_results(path, results_key)
     return info, results
     
 if __name__ == "__main__":

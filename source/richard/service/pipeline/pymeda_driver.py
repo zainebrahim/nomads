@@ -3,6 +3,8 @@ import pandas as pd
 from skimage import measure
 from skimage import filters
 import pymeda
+import sys, os
+
     
     
 def label_predictions(result):
@@ -62,6 +64,11 @@ def pymeda_pipeline(predictions, raw_data, title = "PyMeda Plots", cluster_level
     synapse_centroids = calculate_synapse_centroids(connected_components)
     features = get_aggregate_sum(synapse_centroids, raw_data)
     df = get_data_frame(features)
+    sys.stdout = open(os.devnull, 'w')
     meda = pymeda.Meda(data = df, title = title, cluster_levels = cluster_levels)
-    meda.generate_report(path)
+    sys.stdout = sys.__stdout__
+    try:
+        meda.generate_report(path)
+    except:
+        print("Too many points, cannot generate plots. Fix incoming!")
     return
