@@ -4,12 +4,16 @@ from skimage import measure
 from skimage import filters
 import pymeda
 
-def get_features(predictions, raw_data):
+def get_pymeda_features(predictions, raw_data):
     #run connected components
+    components = label_synapses(predictions)
+    synapse_centroids = calculate_synapse_centroids(components)
+    features = get_aggregate_sum(synapse_centroids, raw_data)
+    return features
+    
+def label_synapses(predictions):
     synapse_labels = measure.label(predictions, background=0)
     connected_components = {}
-    # grab all connected components
-    #TODO: do fancy list comprehension
     for z in range(synapse_labels.shape[0]):
         for y in range(synapse_labels.shape[1]):
             for x in range(synapse_labels.shape[2]):
@@ -17,10 +21,8 @@ def get_features(predictions, raw_data):
                     connected_components[synapse_labels[z][y][x]].append((z, y, x))
                 else:
                     connected_components[synapse_labels[z][y][x]] = [(z, y, x)]
-    # remove background cluster
     connected_components.pop(0)
-    synapse_centroids = calculate_synapse_centroids(connected_components)
-    return get_aggregate_sum(synapse_centroids, raw_data)
+    return connected_components
 
 # Input: dictionary of connected_components
 def calculate_synapse_centroids(connected_components):
@@ -36,8 +38,8 @@ def get_aggregate_sum(synapse_centroids, data):
     data_dictionary = dict((key, []) for key in data.keys())
     for centroid in synapse_centroids:
         z, y, x = centroid
-        z_lower = z - 5
-        z_upper = z + 5
+        z_lower = z - 1
+        z_upper = z + 1
         y_lower = y - 11
         y_upper = y + 11
         x_lower = x - 11
@@ -60,7 +62,7 @@ def get_data_frame(data_dict):
     return df
 
 def pymeda_pipeline(predictions, raw_data, title = "PyMeda Plots", cluster_levels = 2, path = "./"):
-    features = get_features(predictions, raw_data)
+    features = get_pymeda_features(predictions, raw_data)
     df = get_data_frame(features)
     meda = pymeda.Meda(data = df, title = title, cluster_levels = cluster_levels)
     meda.generate_report(path)

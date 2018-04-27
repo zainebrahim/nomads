@@ -84,7 +84,5 @@ def pipeline(input_data, verbose=False):
     if verbose:
         print('Pruning Predictions')
     filtered_predictions = remove_low_volume_predictions(predictions, 30)
-    #predictions = np.stack([upsample(elem, 32)\
-    #                        for elem in filtered_predictions])
                                 
     return filtered_predictions
