@@ -655,3 +655,13 @@ textarea.input100 {
 .wrap-input100 .dropDownSelect2 .select2-dropdown {
   width: calc(100% + 2px) !important;
 }
+
+.summary {
+  width: 80%;
+}
+
+.title {
+  text-align: center;
+  position: relative;
+  margin-top: -70%;
+}
