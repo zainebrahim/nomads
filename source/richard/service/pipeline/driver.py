@@ -6,6 +6,7 @@ import pickle
 import numpy as np
 import boto3, glob
 
+
 # pull data from BOSS
 def get_data(host, token, col, exp, z_range, y_range, x_range):
     print("Downloading {} from {} with ranges: z: {} y: {} x: {}".format(exp, 
@@ -18,6 +19,8 @@ def get_data(host, token, col, exp, z_range, y_range, x_range):
     for chan in resource.channels:
         data_dict[chan] = resource.get_cutout(chan, z_range, y_range, x_range)
     return data_dict
+    
+    
     
 def format_data(data_dict):
     data = []
@@ -37,6 +40,8 @@ def format_data(data_dict):
     data = np.stack(data)
     return data
     
+    
+    
 def run_nomads(data_dict):
     print("Beginning NOMADS Pipeline...")
     input_data = format_data(data_dict)
@@ -46,6 +51,8 @@ def run_nomads(data_dict):
         raise Exception("PSD or Synapsin Channel contained only one value. Exiting...")
     print("Finished NOMADS Pipeline.")
     return results
+    
+    
     
 def upload_results(path, results_key):
     client = boto3.client('s3')
@@ -58,6 +65,8 @@ def upload_results(path, results_key):
         client.upload_file(file, "nomads-unsupervised-results", key)
     return
 
+    
+    
 ## PLEASE HAVE / AT END OF PATH
 ## BETTER YET DONT TOUCH PATH
 def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"):
@@ -68,7 +77,7 @@ def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"
     
     results = run_nomads(data_dict)
     
-    results_key = "_".join([col, exp, "z", str(z_range[0]), str(z_range[1]), "y", \
+    results_key = "_".join(["nomads", col, exp, "z", str(z_range[0]), str(z_range[1]), "y", \
     str(y_range[0]), str(y_range[1]), "x", str(x_range[0]), str(x_range[1])])
     
     pickle.dump(results, open(path + results_key + ".pkl", "wb"))
@@ -80,6 +89,8 @@ def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"
     upload_results(path, results_key)
     return info, results
     
+    
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='NOMADS and PyMeda driver.')
     parser.add_argument('--host', required = True, type=str, help='BOSS Api host, do not include "https"')
