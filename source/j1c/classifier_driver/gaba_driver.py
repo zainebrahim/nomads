@@ -1,6 +1,7 @@
 import pickle
 
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier
 
 
 def get_cubes(raw_data, centroids):
@@ -44,6 +45,16 @@ def get_cubes(raw_data, centroids):
     return np.array(out, dtype=np.unint8)
 
 
+def create_channel(dimensions, centroids):
+    data = np.zeros(dimensions, dtype=np.uint8)
+
+    for row in centroids:
+        z, y, x = row
+        data[z - 7:z + 7, y - 4:y + 4, x - 4:x + 4] = 255
+
+    return data
+
+
 def gaba_classifier_pipeline(raw_data, centroids):
     """
     Parameters
@@ -54,6 +65,10 @@ def gaba_classifier_pipeline(raw_data, centroids):
         In [z, y, x] format
     """
     X = get_cubes(raw_data, centroids)
+    centroids = np.array(centroids)
+    channels = [x for x in raw_data.keys() if x.lower() not in exclude_list]
+    channels = list(raw_data.keys())
+    max_size = raw_data[channels[0]].shape
 
     components = np.load('./components.npy')
 
@@ -70,4 +85,10 @@ def gaba_classifier_pipeline(raw_data, centroids):
 
     predictions = model.predict(X)
 
-    return predictions
+    gaba_centroids = centroids[predictions == 1]
+    ext_centroids = centroids[predictions == 0]
+
+    gaba_channel = create_channel(max_size, gaba_centroids)
+    ext_centroids = create_channel(max_size, ext_centroids)
+
+    return gaba_channel, ext_channel
