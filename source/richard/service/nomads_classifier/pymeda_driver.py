@@ -18,7 +18,6 @@ def label_predictions(result):
                     connected_components[synapse_labels[z][y][x]].append((z, y, x))
                 else:
                     connected_components[synapse_labels[z][y][x]] = [(z, y, x)]
-    print(len(connected_components[0]))
     connected_components.pop(0)
     return connected_components
 

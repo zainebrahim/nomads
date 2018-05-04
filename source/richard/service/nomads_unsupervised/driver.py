@@ -79,7 +79,7 @@ def upload_results(path, results_key):
 ## PLEASE HAVE / AT END OF PATH
 ## BETTER YET DONT TOUCH PATH
 def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"):
-    
+    print("Starting Nomads Unsupervised...")
     info = locals()
     data_dict = get_data(host, token, col, exp, z_range, y_range, x_range)
     
@@ -92,10 +92,11 @@ def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"
     print("Saved pickled results (np array) {} in {}".format("nomads-unsupervised-predictions.pkl", path))
     
     print("Generating PyMeda Plots...")
-
-    title = "PyMeda Plots on {}".format(exp)
     norm_data = load_and_preproc(data_dict)
-    pymeda_driver.pymeda_pipeline(results, norm_data, title = title, path = path)
+    try:
+        pymeda_driver.pymeda_pipeline(results, norm_data, title = "PyMeda Plots on All Predicted Synapses", path = path)
+    except:
+        print("Not generating plots for all synapses, no predictions classified as Gaba")
     print("Uploading results...")
     upload_results(path, results_key)
     return info, results

@@ -7,11 +7,11 @@ app = Flask(__name__)
 def submit_job(pipeline, token, col, exp, z_range, y_range, x_range):
     
     try:
-        z_range_proc = list(map(int, args.z_range.split(",")))
-        y_range_proc = list(map(int, args.y_range.split(",")))
-        x_range_proc = list(map(int, args.x_range.split(",")))
+        z_range_proc = list(map(int, z_range.split(",")))
+        y_range_proc = list(map(int, y_range.split(",")))
+        x_range_proc = list(map(int, x_range.split(",")))
     except:
-        return "Job not submitted, dimensions not correctly formmated"
+        print("Job not submitted, dimensions not correctly formmated")
         
     job_name = "_".join([pipeline, col, exp, "z", str(z_range_proc[0]), str(z_range_proc[1]), "y", \
     str(y_range_proc[0]), str(y_range_proc[1]), "x", str(x_range_proc[0]), str(x_range_proc[1])])
@@ -51,7 +51,7 @@ def submit_job(pipeline, token, col, exp, z_range, y_range, x_range):
                     'Name': 'Batch Instance - C4OnDemand',
                 },
             },
-            serviceRole='arn:aws:iam::389826612951:role/service-role/AWSBatchServiceRole',
+            serviceRole='AWSBatchServiceRole',
             state='ENABLED',
         )
     
@@ -76,7 +76,7 @@ def submit_job(pipeline, token, col, exp, z_range, y_range, x_range):
     if len(response["jobDefinitions"]) == 0:
         if pipeline == "nomads-unsupervised":
             register_nomads_unsupervised(client)
-        if pipeline == "insert name here":
+        if pipeline == "nomads-classifier":
             register_nomads_classifier(client)
     response = client.submit_job(
         jobName=job_name,
@@ -105,6 +105,7 @@ def submit_job(pipeline, token, col, exp, z_range, y_range, x_range):
             ],
         },
     )
+    print(job_name)
     return job_name
 
 def register_nomads_unsupervised(client):
@@ -130,7 +131,7 @@ def register_nomads_classifier(client):
                 "echo",
                 "Staring Container"
             ],
-            'image': "insert-pipeline-uri",
+            'image': "389826612951.dkr.ecr.us-east-1.amazonaws.com/nomads-classifier",
             'memory': 4000,
             'vcpus': 1,
         },
@@ -140,7 +141,6 @@ def register_nomads_classifier(client):
 @app.route("/", methods = ["GET"])
 def index():
     client = boto3.client("batch")
-    print(client.waiter_names)
     return render_template("index.html")
 
 @app.route("/submit", methods = ["GET", "POST"])
@@ -160,7 +160,7 @@ def submit():
     
 @app.route("/complete", methods = ["GET", "POST"])
 def complete():
-    
+    pass
 
 if __name__ == "__main__":
     #submit_job("edef359a8de270163c911dcef5d467a72348d68d", "collman", "M247514_Rorb_1_light", "40,45", "6500,7000", "6500,7000")

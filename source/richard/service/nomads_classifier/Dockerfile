@@ -9,6 +9,8 @@ RUN mkdir /workdirectory
 WORKDIR /workdirectory
 
 ADD *.py ./
+ADD *.npy ./
+ADD model.pkl ./
 ADD requirements.txt ./
 Run mkdir ./results
 

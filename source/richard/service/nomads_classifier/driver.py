@@ -5,6 +5,7 @@ import argparse
 import pickle
 import numpy as np
 import boto3, glob
+from gaba_driver import gaba_classifier_pipeline
 
 # pull data from BOSS
 def get_data(host, token, col, exp, z_range, y_range, x_range):
@@ -79,9 +80,11 @@ def upload_results(path, results_key):
 ## PLEASE HAVE / AT END OF PATH
 ## BETTER YET DONT TOUCH PATH
 def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"):
+    print("Starting Nomads Classifier...")
     
     info = locals()
     data_dict = get_data(host, token, col, exp, z_range, y_range, x_range)
+    print("Getting predictions via Nomads Unsupervised...")
     
     results = run_nomads(data_dict)
     
@@ -89,15 +92,36 @@ def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"
     str(y_range[0]), str(y_range[1]), "x", str(x_range[0]), str(x_range[1])])
     
     pickle.dump(results, open(path + "nomads-unsupervised-predictions" + ".pkl", "wb"))
-    print("Saved pickled results (np array) {} in {}".format("nomads-unsupervised-predictions", path))
+    print("Saved pickled predictions (np array) {} in {}".format("nomads-unsupervised-predictions.pkl", path))
     
     print("Classifying synapses...")
+    norm_data = load_and_preproc(data_dict)
+    results = pickle.load(open("results/nomads-unsupervised-predictions.pkl", "rb"))
+    connected_components = pymeda_driver.label_predictions(results)
+    synapse_centroids = pymeda_driver.calculate_synapse_centroids(connected_components)
+    
+    
+    gaba, non_gaba = gaba_classifier_pipeline(data_dict, synapse_centroids)
+    pickle.dump(gaba, open(path + "gaba" + ".pkl", "wb"))
+    print("Saved pickled gaba (np array) {} in {}".format("gaba.pkl", path))
+    pickle.dump(non_gaba, open(path + "non_gaba" + ".pkl", "wb"))
+    print("Saved pickled gaba (np array) {} in {}".format("non_gaba.pkl", path))
+    
+    print("Generating PyMeda plots...")
+    try:
+        pymeda_driver.pymeda_pipeline(non_gaba, norm_data, title = "PyMeda Plots on Predicted NonGaba Synapses", path = path)
+    except:
+        print("Not generating plots for NonGaba, no predictions classified as NonGaba")
+    try:
+        pymeda_driver.pymeda_pipeline(gaba, norm_data, title = "PyMeda Plots on Predicted Gaba Synapses", path = path)
+    except:
+        print("Not generating plots for Gaba, no predictions classified as Gaba")
 
-    title = "PyMeda Plots on {}".format(exp)
-    #norm_data = load_and_preproc(data_dict)
-    connected_components = label_predictions(results)
-    synapse_centroids = calculate_synapse_centroids(connected_components)
-    #pymeda_driver.pymeda_pipeline(results, norm_data, title = title, path = path)
+    try:
+        pymeda_driver.pymeda_pipeline(results, norm_data, title = "PyMeda Plots on All Predicted Synapses", path = path)
+    except:
+        print("Not generating plots for all synapses, no predictions classified as Gaba")
+
     print("Uploading results...")
     upload_results(path, results_key)
     return info, results
