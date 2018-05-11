@@ -5,6 +5,7 @@ import argparse
 import pickle
 import numpy as np
 import boto3, glob
+from nd_boss import boss_push
 
 # pull data from BOSS
 def get_data(host, token, col, exp, z_range, y_range, x_range):
@@ -76,29 +77,34 @@ def upload_results(path, results_key):
         Key=key)
     return
 
-## PLEASE HAVE / AT END OF PATH
+## PLEASE HAVE "/"" AT END OF PATH
 ## BETTER YET DONT TOUCH PATH
 def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"):
     print("Starting Nomads Unsupervised...")
     info = locals()
-    data_dict = get_data(host, token, col, exp, z_range, y_range, x_range)
+    #data_dict = get_data(host, token, col, exp, z_range, y_range, x_range)
     
-    results = run_nomads(data_dict)
-    
+    #results = run_nomads(data_dict)
+    #np.putmask(results, results, 255)
+
     results_key = "_".join(["nomads-unsupervised", col, exp, "z", str(z_range[0]), str(z_range[1]), "y", \
     str(y_range[0]), str(y_range[1]), "x", str(x_range[0]), str(x_range[1])])
     
-    pickle.dump(results, open(path + "nomads-unsupervised-predictions" + ".pkl", "wb"))
+    #pickle.dump(results, open(path + "nomads-unsupervised-predictions" + ".pkl", "wb"))
     print("Saved pickled results (np array) {} in {}".format("nomads-unsupervised-predictions.pkl", path))
     
     print("Generating PyMeda Plots...")
-    norm_data = load_and_preproc(data_dict)
-    try:
-        pymeda_driver.pymeda_pipeline(results, norm_data, title = "PyMeda Plots on All Predicted Synapses", path = path)
-    except:
-        print("Not generating plots for all synapses, no predictions classified as Gaba")
-    print("Uploading results...")
-    upload_results(path, results_key)
+    
+    #norm_data = load_and_preproc(data_dict)
+    #try:
+    #    pymeda_driver.pymeda_pipeline(results, norm_data, title = "PyMeda Plots on All Predicted Synapses", path = path)
+    #except:
+    #    print("Not generating plots for all synapses, no predictions classified as Gaba")
+    #print("Uploading results...")
+    results = pickle.load(open("./results/nomads-unsupervised-predictions.pkl", "rb"))
+    #upload_results(path, results_key)
+    
+    boss_push(token, "collman", "M247514_Rorb_1_Site3Align2_EM", z_range, y_range, x_range, {results_key: results})
     return info, results
     
 if __name__ == "__main__":

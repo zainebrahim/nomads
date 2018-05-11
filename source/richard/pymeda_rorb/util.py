@@ -77,7 +77,6 @@ def split_data_padded(data, block_size, padding):
         img_blocks[block_id] = img_block
     return img_blocks
 
-
 def format_data_to_cube(data_dict):
     data = []
     for chan, value in data_dict.items():
@@ -86,7 +85,7 @@ def format_data_to_cube(data_dict):
     ## Verify data is correct for user
     print("Data shape is:\t" + str(data.shape))
     return data
-    
+
 def load_and_preproc(data_dict, z_transform=True):
     raw = data_dict
     if z_transform:
