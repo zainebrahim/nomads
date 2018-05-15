@@ -125,6 +125,11 @@ def gaba_classifier_pipeline(raw_data, centroids):
     # ext_channels = create_channel(max_size, ext_centroids)
 
     # Relabel things
-    ids[ids==1][predictions==1] = 2
+    pointer = 0
+    for idx, val in enumerate(ids):
+        if val == 1:
+            if predictions[pointer] == 1:
+                ids[val] = 2
+            pointer += 1
 
     return ids
