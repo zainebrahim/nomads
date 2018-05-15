@@ -75,15 +75,12 @@ def upload_results(path, results_key):
     bucket = s3.Bucket("nomads-unsupervised-results")
     bucket.Acl().put(ACL='public-read')
     files = glob.glob(path+"*")
-    links_dict = {}
     for file in files:
         key = results_key + "/" + file.split("/")[-1]
         client.upload_file(file, "nomads-unsupervised-results", key)
         response = client.put_object_acl(ACL='public-read', Bucket="nomads-unsupervised-results", \
         Key=key)
-        presigned_url = client.generate_presigned_url('get_object', Params={'Bucket': "nomads-unsupervised-results", 'Key': key}, ExpiresIn = 86400)
-        links_dict[key] = presigned_url
-    return links_dict
+    return 
 
 ## PLEASE HAVE "/"" AT END OF PATH
 ## BETTER YET DONT TOUCH PATH
@@ -120,12 +117,9 @@ def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"
             writer.writerow([key, value])
         
     
-    s3_links = upload_results(path, results_key)
-    
-    
-    print(s3_links)
-    
-    return info, results, s3_links, boss_links
+    upload_results(path, results_key)
+        
+    return info, results, , boss_links
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='NOMADS and PyMeda driver.')
