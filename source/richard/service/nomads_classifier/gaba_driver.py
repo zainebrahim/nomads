@@ -55,7 +55,8 @@ def get_cubes(raw_data, centroids):
                 cubes.append(cube)
 
         # Flatten array
-        out.append(np.array(cubes, dtype=np.uint8).ravel())
+        if len(cubes) != 0:
+            out.append(np.array(cubes, dtype=np.uint8).ravel())
 
     return np.array(out, dtype=np.uint8), np.asarray(ids)
 
