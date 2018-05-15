@@ -24,7 +24,7 @@ def get_cubes(raw_data, centroids):
     cube_size = (7, 4, 4)  # Results in 15 x 9 x 9 cubes
     out = []
     ids = []
-    
+
 
     for row in centroids:
         cubes = []
@@ -32,7 +32,7 @@ def get_cubes(raw_data, centroids):
         z_idx = (z - cube_size[0], z + cube_size[0] + 1)
         y_idx = (y - cube_size[1], y + cube_size[1] + 1)
         x_idx = (x - cube_size[2], x + cube_size[2] + 1)
-        
+
         if (z_idx[0] >= 0) and (y_idx[0] >= 0) and (x_idx[0] >= 0) and (
                     z_idx[1] <= max_size[0]) and (y_idx[1] <= max_size[1]) and (
                         x_idx[1] <= max_size[2]):
@@ -127,6 +127,7 @@ def gaba_classifier_pipeline(raw_data, centroids):
 
     # Relabel things
     pointer = 0
+    print('ids: ', ids)
     for idx, val in enumerate(ids):
         if val == 1:
             if predictions[pointer] == 1:

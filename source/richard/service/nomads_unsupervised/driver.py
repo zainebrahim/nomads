@@ -10,10 +10,10 @@ import csv
 
 # pull data from BOSS
 def get_data(host, token, col, exp, z_range, y_range, x_range):
-    print("Downloading {} from {} with ranges: z: {} y: {} x: {}".format(exp, 
-                                                                         col, 
-                                                                         str(z_range), 
-                                                                         str(y_range), 
+    print("Downloading {} from {} with ranges: z: {} y: {} x: {}".format(exp,
+                                                                         col,
+                                                                         str(z_range),
+                                                                         str(y_range),
                                                                          str(x_range)))
     resource = NeuroDataResource(host, token, col, exp)
     data_dict = {}
@@ -36,7 +36,7 @@ def load_and_preproc(data_dict, z_transform=True):
                     sigma = np.std(data[z_idx])
                     raw[channel][z_idx] = (raw[channel][z_idx] - mu)/sigma
     return raw
-    
+
 def format_data(data_dict):
     data = []
     for chan, value in data_dict.items():
@@ -54,7 +54,7 @@ def format_data(data_dict):
             data.append(np.stack(format_chan))
     data = np.stack(data)
     return data
-    
+
 def run_nomads(data_dict):
     print("Beginning NOMADS Pipeline...")
     input_data = format_data(data_dict)
@@ -64,7 +64,7 @@ def run_nomads(data_dict):
         raise Exception("PSD or Synapsin Channel contained only one value. Exiting...")
     print("Finished NOMADS Pipeline.")
     return results
-    
+
 def upload_results(path, results_key):
     client = boto3.client('s3')
     s3 = boto3.resource('s3')
@@ -80,28 +80,28 @@ def upload_results(path, results_key):
         client.upload_file(file, "nomads-unsupervised-results", key)
         response = client.put_object_acl(ACL='public-read', Bucket="nomads-unsupervised-results", \
         Key=key)
-    return 
+    return
 
 ## PLEASE HAVE "/"" AT END OF PATH
 ## BETTER YET DONT TOUCH PATH
 def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"):
-    
+
     print("Starting Nomads Unsupervised...")
     info = locals()
     data_dict, voxel_size = get_data(host, token, col, exp, z_range, y_range, x_range)
-    
+
     results = run_nomads(data_dict)
     results = results.astype(np.uint8)
     np.putmask(results, results, 255)
 
     results_key = "_".join(["nomads-unsupervised", col, exp, "z", str(z_range[0]), str(z_range[1]), "y", \
     str(y_range[0]), str(y_range[1]), "x", str(x_range[0]), str(x_range[1])])
-    
+
     pickle.dump(results, open(path + "nomads-unsupervised-predictions" + ".pkl", "wb"))
     print("Saved pickled results (np array) {} in {}".format("nomads-unsupervised-predictions.pkl", path))
-    
+
     print("Generating PyMeda Plots...")
-    
+
     norm_data = load_and_preproc(data_dict)
     try:
         pymeda_driver.pymeda_pipeline(results, norm_data, title = "PyMeda Plots on All Predicted Synapses", path = path)
@@ -109,18 +109,18 @@ def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"
         print("Not generating plots for all synapses, no predictions classified as Gaba")
     print("Uploading results...")
     #results = pickle.load(open("./results/nomads-unsupervised-predictions.pkl", "rb"))
-    
-    boss_links = boss_push(token, "collman_nomads", "nomads_predictions", z_range, y_range, x_range, {results_key: results})
+
+    boss_links = boss_push(token, "collman_nomads", "nomads_predictions", z_range, y_range, x_range, {results_key: results}, results_key)
     with open('results/NDVIS_links.csv', 'w') as csv_file:
         writer = csv.writer(csv_file)
         for key, value in boss_links.items():
             writer.writerow([key, value])
-        
-    
+
+
     upload_results(path, results_key)
-        
+
     return info, results, , boss_links
-    
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='NOMADS and PyMeda driver.')
     parser.add_argument('--host', required = True, type=str, help='BOSS Api host, do not include "https"')
@@ -131,11 +131,9 @@ if __name__ == "__main__":
     parser.add_argument('--y-range', required = True, type=str, help='ystart,ystop   NO SPACES. ystart, ystop will be casted to ints')
     parser.add_argument('--x-range', required = True, type=str, help='xstart,xstop   NO SPACES. xstart, xstop will be casted to ints')
     args = parser.parse_args()
-    
+
     z_range = list(map(int, args.z_range.split(",")))
     y_range = list(map(int, args.y_range.split(",")))
     x_range = list(map(int, args.x_range.split(",")))
-    
+
     driver(args.host, args.token, args.col, args.exp, z_range, y_range, x_range)
-    
-    
