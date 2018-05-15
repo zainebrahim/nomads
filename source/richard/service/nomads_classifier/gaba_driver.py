@@ -24,10 +24,21 @@ def get_cubes(raw_data, centroids):
     cube_size = (7, 4, 4)  # Results in 15 x 9 x 9 cubes
     out = []
     ids = []
+    
 
     for row in centroids:
         cubes = []
         z, y, x = row
+        z_idx = (z - cube_size[0], z + cube_size[0] + 1)
+        y_idx = (y - cube_size[1], y + cube_size[1] + 1)
+        x_idx = (x - cube_size[2], x + cube_size[2] + 1)
+        
+        if (z_idx[0] >= 0) and (y_idx[0] >= 0) and (x_idx[0] >= 0) and (
+                    z_idx[1] <= max_size[0]) and (y_idx[1] <= max_size[1]) and (
+                        x_idx[1] <= max_size[2]):
+            ids.append(1)
+        else:
+            ids.append(0)
 
         for chan in channels:
             data = raw_data[chan]
@@ -42,9 +53,6 @@ def get_cubes(raw_data, centroids):
                 cube = data[z_idx[0]:z_idx[1], y_idx[0]:y_idx[1], x_idx[0]:
                             x_idx[1]]
                 cubes.append(cube)
-                ids.append(1)
-            else:
-                ids.append(0)
 
         # Flatten array
         out.append(np.array(cubes, dtype=np.uint8).ravel())
