@@ -104,6 +104,8 @@ def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"
     print("Getting predictions via Nomads Unsupervised...")
 
     results = run_nomads(data_dict)
+    results = results.astype(np.uint8)
+    np.putmask(results, results, 255)
 
     results_key = "_".join(["nomads-classifier", col, exp, "z", str(z_range[0]), str(z_range[1]), "y", \
     str(y_range[0]), str(y_range[1]), "x", str(x_range[0]), str(x_range[1])])
@@ -117,13 +119,13 @@ def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"
     connected_components, label_vol = pymeda_driver.label_predictions(results)
     synapse_centroids = pymeda_driver.calculate_synapse_centroids(connected_components)
 
-    print('Labeled syns: ', np.max(label_vol))
     class_list = gaba_classifier_pipeline(data_dict, synapse_centroids)
-    print('class 0: ', len([elem for elem in class_list if elem == 0]))
-    print('class 1: ', len([elem for elem in class_list if elem == 1]))
-    print('class 2: ', len([elem for elem in class_list if elem == 2]))
 
     no_pred_vol, non_gaba_vol, gaba_vol = split_vol_by_id(label_vol, class_list, 3)
+    gaba_vol = gaba_vol.astype(np.uint8)
+    np.putmask(gaba_vol, gaba_vol, 255)
+    non_gaba_vol = non_gaba_vol.astype(np.uint8)
+    np.putmask(non_gaba_vol, non_gaba_vol, 255)
 
     pickle.dump(gaba_vol, open(path + "gaba" + ".pkl", "wb"))
     print("Saved pickled gaba (np array) {} in {}".format("gaba.pkl", path))
@@ -131,6 +133,7 @@ def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"
     print("Saved pickled gaba (np array) {} in {}".format("non_gaba.pkl", path))
 
     print("Generating PyMeda plots...")
+
     try:
         pymeda_driver.pymeda_pipeline(non_gaba_vol, norm_data, title = "PyMeda Plots on Predicted NonGaba Synapses", path = path)
     except:
@@ -140,14 +143,15 @@ def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"
     except:
         print("Not generating plots for Gaba, no predictions classified as Gaba")
 
+
     try:
         pymeda_driver.pymeda_pipeline(results, norm_data, title = "PyMeda Plots on All Predicted Synapses", path = path)
     except:
-        print("Not generating plots for all synapses, no predictions classified as Gaba")
+        print("Not generating plots for all synapses, no predictions detected")
 
     print("Uploading results...")
-    data_dict = {"All": results, "Gaba": gaba_vol, "NonGaba": non_gaba_vol}
-    boss_links = boss_push(token, "collman_nomads", "nomads_predictions", z_range, y_range, x_range, data_dict, results_key)
+    results_dict = {"All": results, "Gaba": gaba_vol, "NonGaba": non_gaba_vol}
+    boss_links = boss_push(token, "collman_nomads", "nomads_predictions", z_range, y_range, x_range, results_dict, results_key)
     with open('results/NDVIS_links.csv', 'w') as csv_file:
         writer = csv.writer(csv_file)
         for key, value in boss_links.items():
