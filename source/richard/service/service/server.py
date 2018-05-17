@@ -35,7 +35,11 @@ def send_email(url, recipient, pipeline):
 
 app = Flask(__name__)
 
-def submit_job(email, pipeline, token, col, exp, z_range, y_range, x_range):
+def create_aws_session(access_key = None, secret_key = None):
+    session = boto3.session.Session(aws_access_key_id = access_key, aws_secret_access_key = secret_key, region_name = "us-east-1")
+    return session
+
+def submit_job(session, bucket_name, email, pipeline, token, col, exp, z_range, y_range, x_range):
 
     try:
         z_range_proc = list(map(int, z_range.split(",")))
@@ -47,27 +51,20 @@ def submit_job(email, pipeline, token, col, exp, z_range, y_range, x_range):
     job_name = "_".join([pipeline, col, exp, "z", str(z_range_proc[0]), str(z_range_proc[1]), "y", \
     str(y_range_proc[0]), str(y_range_proc[1]), "x", str(x_range_proc[0]), str(x_range_proc[1])])
 
-    client = boto3.client('s3')
+    client = session.client('s3')
 
     s3_bucket_exists_waiter = client.get_waiter('bucket_exists')
-
-    if pipeline == "nomads-unsupervised":
-        bucket = client.create_bucket(Bucket="nomads-unsupervised-results")
+    try:
+        bucket = client.create_bucket(Bucket=bucket_name)
         s3 = boto3.resource("s3")
-        bucket = s3.Bucket("nomads-unsupervised-results")
+        bucket = s3.Bucket(bucket_name)
         bucket.Acl().put(ACL='public-read')
+    except:
+        print("bucket fail")
+        raise
 
-        url = "https://s3.console.aws.amazon.com/s3/buckets/nomads-unsupervised-results/{}/?region=us-east-1&tab=overview".format(job_name)
-        send_email(url, email, pipeline)
-
-    if pipeline == "nomads-classifier":
-        bucket = client.create_bucket(Bucket="nomads-classifier-results")
-        s3 = boto3.resource("s3")
-        bucket = s3.Bucket("nomads-classifier-results")
-        bucket.Acl().put(ACL='public-read')
-
-        url = "https://s3.console.aws.amazon.com/s3/buckets/nomads-classifier-results/{}/?region=us-east-1&tab=overview".format(job_name)
-        send_email(url, email, pipeline)
+    url = "https://s3.console.aws.amazon.com/s3/buckets/{}}/{}/?region=us-east-1&tab=overview".format(bucket_name, job_name)
+    send_email(url, email, pipeline)
 
 
     client = boto3.client("batch")
@@ -141,6 +138,8 @@ def submit_job(email, pipeline, token, col, exp, z_range, y_range, x_range):
             'command': [
                 "python3",
                 "driver.py",
+                "--bucket",
+                bucket,
                 "--host",
                 "api.boss.neurodata.io",
                 "--token",
@@ -198,6 +197,10 @@ def index():
 
 @app.route("/submit", methods = ["GET", "POST"])
 def submit():
+    aws_access = request.form["access"]
+    aws_secret = request.form["secret"]
+    aws_bucket = request.form["bucket"]
+
     token = request.form["token"]
     col = request.form["col"]
     exp = request.form["exp"]
@@ -208,7 +211,8 @@ def submit():
     pipeline = request.form["pipeline"]
     email = request.form["email"]
     host = "api.boss.neurodata.io"
-    submit_job(email, pipeline, token, col, exp, z_range, y_range, x_range)
+    session = create_aws_session(aws_access, aws_secret)
+    submit_job(session, aws_bucket, email, pipeline, token, col, exp, z_range, y_range, x_range)
 
 
     return redirect(url_for("index"))

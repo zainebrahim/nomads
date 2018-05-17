@@ -64,26 +64,26 @@ def run_nomads(data_dict):
     print("Finished NOMADS Pipeline.")
     return results
 
-def upload_results(path, results_key):
+def upload_results(bucket_key, path, results_key):
     client = boto3.client('s3')
     s3 = boto3.resource('s3')
     s3_bucket_exists_waiter = client.get_waiter('bucket_exists')
-    bucket = client.create_bucket(Bucket="nomads-unsupervised-results")
-    s3_bucket_exists_waiter.wait(Bucket="nomads-unsupervised-results")
+    bucket = client.create_bucket(Bucket=bucket_key)
+    s3_bucket_exists_waiter.wait(Bucket=bucket_key)
 
-    bucket = s3.Bucket("nomads-unsupervised-results")
+    bucket = s3.Bucket(bucket_key)
     bucket.Acl().put(ACL='public-read')
     files = glob.glob(path+"*")
     for file in files:
         key = results_key + "/" + file.split("/")[-1]
-        client.upload_file(file, "nomads-unsupervised-results", key)
-        response = client.put_object_acl(ACL='public-read', Bucket="nomads-unsupervised-results", \
+        client.upload_file(file, bucket_key, key)
+        response = client.put_object_acl(ACL='public-read', Bucket=bucket_key, \
         Key=key)
     return
 
 ## PLEASE HAVE "/"" AT END OF PATH
 ## BETTER YET DONT TOUCH PATH
-def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"):
+def driver(bucket, host, token, col, exp, z_range, y_range, x_range, path = "./results/"):
     print("Starting Nomads Unsupervised...")
     results_key = "_".join(["nomads-unsupervised", col, exp, "z", str(z_range[0]), str(z_range[1]), "y", \
     str(y_range[0]), str(y_range[1]), "x", str(x_range[0]), str(x_range[1])])
@@ -137,12 +137,13 @@ def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"
 
     logging.info("Finished job, uploading results. END")
 
-    upload_results(path, results_key)
+    upload_results(bucket, path, results_key)
 
     return info, results, boss_links
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='NOMADS and PyMeda driver.')
+    parser.add_argument('--bucket', required = True, type = str, help = 'AWS Bucket Name for storing results')
     parser.add_argument('--host', required = True, type=str, help='BOSS Api host, do not include "https"')
     parser.add_argument('--token', required = True, type=str, help='BOSS API Token Key')
     parser.add_argument('--col', required = True, type=str, help='collection name')
@@ -156,4 +157,4 @@ if __name__ == "__main__":
     y_range = list(map(int, args.y_range.split(",")))
     x_range = list(map(int, args.x_range.split(",")))
     logging.basicConfig(filename='./results/job.log',level=logging.INFO)
-    driver(args.host, args.token, args.col, args.exp, z_range, y_range, x_range)
+    driver(args.bucket, args.host, args.token, args.col, args.exp, z_range, y_range, x_range)
