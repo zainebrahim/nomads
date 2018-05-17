@@ -7,6 +7,8 @@ import numpy as np
 import boto3, glob
 from nd_boss import boss_push
 import csv
+import logging
+from traceback import print_exc
 
 # pull data from BOSS
 def get_data(host, token, col, exp, z_range, y_range, x_range):
@@ -19,7 +21,7 @@ def get_data(host, token, col, exp, z_range, y_range, x_range):
     data_dict = {}
     for chan in resource.channels:
         data_dict[chan] = resource.get_cutout(chan, z_range, y_range, x_range)
-    return data_dict, resource.voxel_size
+    return data_dict
 
 # normalize data
 def load_and_preproc(data_dict, z_transform=True):
@@ -58,10 +60,7 @@ def format_data(data_dict):
 def run_nomads(data_dict):
     print("Beginning NOMADS Pipeline...")
     input_data = format_data(data_dict)
-    try:
-        results = pipeline(input_data)
-    except:
-        raise Exception("PSD or Synapsin Channel contained only one value. Exiting...")
+    results = pipeline(input_data)
     print("Finished NOMADS Pipeline.")
     return results
 
@@ -85,41 +84,62 @@ def upload_results(path, results_key):
 ## PLEASE HAVE "/"" AT END OF PATH
 ## BETTER YET DONT TOUCH PATH
 def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"):
-
     print("Starting Nomads Unsupervised...")
-    info = locals()
-    data_dict, voxel_size = get_data(host, token, col, exp, z_range, y_range, x_range)
-
-    results = run_nomads(data_dict)
-    results = results.astype(np.uint8)
-    np.putmask(results, results, 255)
-
     results_key = "_".join(["nomads-unsupervised", col, exp, "z", str(z_range[0]), str(z_range[1]), "y", \
     str(y_range[0]), str(y_range[1]), "x", str(x_range[0]), str(x_range[1])])
 
+    info = locals()
+    try:
+        data_dict = get_data(host, token, col, exp, z_range, y_range, x_range)
+    except Exception as e:
+        logging.info("Failed to pull data from BOSS. Run with smaller cube of data or check if BOSS is online.")
+        logging.info(e)
+        logging.info("Exiting...")
+        upload_results(path, results_key)
+        print_exc()
+        return
+
+    try:
+        results = run_nomads(data_dict)
+    except Exception as e:
+        logging.info("Failed to run Nomads-Unsupervised detection algorithm on data.")
+        logging.info(e)
+        logging.info("Exiting...")
+        upload_results(path, results_key)
+        print_exc()
+        return
+
+    results = results.astype(np.uint8)
+    np.putmask(results, results, 255)
+
+
     pickle.dump(results, open(path + "nomads-unsupervised-predictions" + ".pkl", "wb"))
     print("Saved pickled results (np array) {} in {}".format("nomads-unsupervised-predictions.pkl", path))
-
-    print("Generating PyMeda Plots...")
-
     norm_data = load_and_preproc(data_dict)
+
+
     try:
         pymeda_driver.pymeda_pipeline(results, norm_data, title = "PyMeda Plots on All Predicted Synapses", path = path)
     except:
-        print("Not generating plots for all synapses, no predictions classified as Gaba")
+        logging.info("Failed to generate plots for all predictions. No synapses detected.")
+
     print("Uploading results...")
     #results = pickle.load(open("./results/nomads-unsupervised-predictions.pkl", "rb"))
+    try:
+        boss_links = boss_push(token, "collman_nomads", "nomads_predictions", z_range, y_range, x_range, {results_key: results}, results_key)
+        with open('results/NDVIS_links.csv', 'w') as csv_file:
+            writer = csv.writer(csv_file)
+            for key, value in boss_links.items():
+                writer.writerow([key, value])
+    except Exception as e:
+        logging.info("Failed to push results to BOSS. Check permissions and Boss online status.")
+        logging.info(e)
 
-    boss_links = boss_push(token, "collman_nomads", "nomads_predictions", z_range, y_range, x_range, {results_key: results}, results_key)
-    with open('results/NDVIS_links.csv', 'w') as csv_file:
-        writer = csv.writer(csv_file)
-        for key, value in boss_links.items():
-            writer.writerow([key, value])
-
+    logging.info("Finished job, uploading results. END")
 
     upload_results(path, results_key)
 
-    return info, results, , boss_links
+    return info, results, boss_links
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='NOMADS and PyMeda driver.')
@@ -135,5 +155,5 @@ if __name__ == "__main__":
     z_range = list(map(int, args.z_range.split(",")))
     y_range = list(map(int, args.y_range.split(",")))
     x_range = list(map(int, args.x_range.split(",")))
-
+    logging.basicConfig(filename='./results/job.log',level=logging.INFO)
     driver(args.host, args.token, args.col, args.exp, z_range, y_range, x_range)

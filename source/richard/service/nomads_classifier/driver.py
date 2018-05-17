@@ -8,6 +8,8 @@ import boto3, glob
 from gaba_driver import gaba_classifier_pipeline
 from nd_boss import boss_push
 import csv
+import logging
+from traceback import print_exc
 
 # pull data from BOSS
 def get_data(host, token, col, exp, z_range, y_range, x_range):
@@ -59,10 +61,7 @@ def format_data(data_dict):
 def run_nomads(data_dict):
     print("Beginning NOMADS Pipeline...")
     input_data = format_data(data_dict)
-    try:
-        results = pipeline(input_data)
-    except:
-        raise Exception("PSD or Synapsin Channel contained only one value. Exiting...")
+    results = pipeline(input_data)
     print("Finished NOMADS Pipeline.")
     return results
 
@@ -98,30 +97,52 @@ def split_vol_by_id(vol, ids, num_vols):
 ## BETTER YET DONT TOUCH PATH
 def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"):
     print("Starting Nomads Classifier...")
-
-    info = locals()
-    data_dict = get_data(host, token, col, exp, z_range, y_range, x_range)
-    print("Getting predictions via Nomads Unsupervised...")
-
-    results = run_nomads(data_dict)
-    results = results.astype(np.uint8)
-    np.putmask(results, results, 255)
-
     results_key = "_".join(["nomads-classifier", col, exp, "z", str(z_range[0]), str(z_range[1]), "y", \
     str(y_range[0]), str(y_range[1]), "x", str(x_range[0]), str(x_range[1])])
+
+    info = locals()
+    try:
+        data_dict = get_data(host, token, col, exp, z_range, y_range, x_range)
+    except Exception as e:
+        logging.info("Failed to pull data from BOSS. Run with smaller cube of data or check if BOSS is online.")
+        logging.info(e)
+        logging.info("Exiting...")
+        upload_results(path, results_key)
+        print_exc()
+        return
+
+    try:
+        results = run_nomads(data_dict)
+    except Exception as e:
+        logging.info("Failed to run Nomads-Unsupervised detection algorithm on data.")
+        logging.info(e)
+        logging.info("Exiting...")
+        upload_results(path, results_key)
+        print_exc()
+        return
+
+    results = results.astype(np.uint8)
+    np.putmask(results, results, 255)
 
     pickle.dump(results, open(path + "nomads-unsupervised-predictions" + ".pkl", "wb"))
     print("Saved pickled predictions (np array) {} in {}".format("nomads-unsupervised-predictions.pkl", path))
 
-    print("Classifying synapses...")
     norm_data = load_and_preproc(data_dict)
-    #results = pickle.load(open("results/nomads-unsupervised-predictions.pkl", "rb"))
-    connected_components, label_vol = pymeda_driver.label_predictions(results)
-    synapse_centroids = pymeda_driver.calculate_synapse_centroids(connected_components)
 
-    class_list = gaba_classifier_pipeline(data_dict, synapse_centroids)
+    try:
+        #results = pickle.load(open("results/nomads-unsupervised-predictions.pkl", "rb"))
+        connected_components, label_vol = pymeda_driver.label_predictions(results)
+        synapse_centroids = pymeda_driver.calculate_synapse_centroids(connected_components)
+        class_list = gaba_classifier_pipeline(data_dict, synapse_centroids)
+        no_pred_vol, non_gaba_vol, gaba_vol = split_vol_by_id(label_vol, class_list, 3)
+    except Exception as e:
+        logging.info("Failed to run Nomads-Classfier algorithm on data.")
+        logging.info(e)
+        logging.info("Exiting...")
+        upload_results(path, results_key)
+        print_exc()
+        return
 
-    no_pred_vol, non_gaba_vol, gaba_vol = split_vol_by_id(label_vol, class_list, 3)
     gaba_vol = gaba_vol.astype(np.uint8)
     np.putmask(gaba_vol, gaba_vol, 255)
     non_gaba_vol = non_gaba_vol.astype(np.uint8)
@@ -132,31 +153,35 @@ def driver(host, token, col, exp, z_range, y_range, x_range, path = "./results/"
     pickle.dump(non_gaba_vol, open(path + "non_gaba" + ".pkl", "wb"))
     print("Saved pickled gaba (np array) {} in {}".format("non_gaba.pkl", path))
 
-    print("Generating PyMeda plots...")
-
-    try:
-        pymeda_driver.pymeda_pipeline(non_gaba_vol, norm_data, title = "PyMeda Plots on Predicted NonGaba Synapses", path = path)
-    except:
-        print("Not generating plots for NonGaba, no predictions classified as NonGaba")
-    try:
-        pymeda_driver.pymeda_pipeline(gaba_vol, norm_data, title = "PyMeda Plots on Predicted Gaba Synapses", path = path)
-    except:
-        print("Not generating plots for Gaba, no predictions classified as Gaba")
-
 
     try:
         pymeda_driver.pymeda_pipeline(results, norm_data, title = "PyMeda Plots on All Predicted Synapses", path = path)
     except:
-        print("Not generating plots for all synapses, no predictions detected")
+        logging.info("Failed to generate plots for all predictions. No synapses detected.")
+    try:
+        pymeda_driver.pymeda_pipeline(non_gaba_vol, norm_data, title = "PyMeda Plots on Predicted NonGaba Synapses", path = path)
+    except:
+        logging.info("PyMeda failed to generate plots for NonGaba. No Non-Gaba synapses found.")
+    try:
+        pymeda_driver.pymeda_pipeline(gaba_vol, norm_data, title = "PyMeda Plots on Predicted Gaba Synapses", path = path)
+    except:
+        logging.info("PyMeda failed to generate plots for Gaba. No Gaba synapses found.")
+
+
 
     print("Uploading results...")
     results_dict = {"All": results, "Gaba": gaba_vol, "NonGaba": non_gaba_vol}
-    boss_links = boss_push(token, "collman_nomads", "nomads_predictions", z_range, y_range, x_range, results_dict, results_key)
-    with open('results/NDVIS_links.csv', 'w') as csv_file:
-        writer = csv.writer(csv_file)
-        for key, value in boss_links.items():
-            writer.writerow([key, value])
+    try:
+        boss_links = boss_push(token, "collman_nomads", "nomads_predictions", z_range, y_range, x_range, results_dict, results_key)
+        with open('results/NDVIS_links.csv', 'w') as csv_file:
+            writer = csv.writer(csv_file)
+            for key, value in boss_links.items():
+                writer.writerow([key, value])
+    except Exception as e:
+        logging.info("Failed to push results to BOSS. Check permissions and Boss online status.")
+        logging.info(e)
 
+    logging.info("Finished, uploading results. END")
 
     upload_results(path, results_key)
 
@@ -177,4 +202,5 @@ if __name__ == "__main__":
     y_range = list(map(int, args.y_range.split(",")))
     x_range = list(map(int, args.x_range.split(",")))
 
+    logging.basicConfig(filename='./results/job.log',level=logging.INFO)
     driver(args.host, args.token, args.col, args.exp, z_range, y_range, x_range)

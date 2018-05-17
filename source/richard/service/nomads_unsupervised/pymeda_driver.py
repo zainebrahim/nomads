@@ -59,7 +59,7 @@ def get_data_frame(data_dict):
     return df
 
 def pymeda_pipeline(predictions, raw_data, title = "PyMeda Plots", cluster_levels = 2, path = "./"):
-    connected_components = label_predictions(predictions)
+    connected_components = label_predictions(predictions)[0]
     synapse_centroids = calculate_synapse_centroids(connected_components)
     print(len(synapse_centroids))
     features = get_aggregate_sum(synapse_centroids, raw_data)
