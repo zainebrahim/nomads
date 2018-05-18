@@ -9,8 +9,9 @@ from nd_boss import boss_push
 import csv
 import logging
 from traceback import print_exc
-
+import intern.utils.parallel as intern
 # pull data from BOSS
+
 def get_data(host, token, col, exp, z_range, y_range, x_range):
     print("Downloading {} from {} with ranges: z: {} y: {} x: {}".format(exp,
                                                                          col,
@@ -18,9 +19,19 @@ def get_data(host, token, col, exp, z_range, y_range, x_range):
                                                                          str(y_range),
                                                                          str(x_range)))
     resource = NeuroDataResource(host, token, col, exp)
+
     data_dict = {}
+    blocks = intern.block_compute(x_range[0], x_range[1], y_range[0], y_range[1], z_range[0], z_range[1], (0, 0, 0), (5000, 5000, 20))
+    orig_shape = (z_range[1] - z_range[0], y_range[1] - y_range[0], x_range[1] - x_range[0])
     for chan in resource.channels:
-        data_dict[chan] = resource.get_cutout(chan, z_range, y_range, x_range)
+        test = resource.get_cutout(chan, [1, 50], [1, 50], [1, 50])
+        type = test.dtype
+        merged_array = np.zeros(orig_shape, dtype = type)
+        for block in blocks:
+            x_r, y_r, z_r = block
+            merged_array[z_r[0] - z_range[0]:z_r[1] - z_range[0], y_r[0] - y_range[0]:y_r[1] - y_range[0], x_r[0] - x_range[0]:x_r[1] - x_range[0]] = \
+            resource.get_cutout(chan, z_r, y_r, x_r)
+        data_dict[chan] = merged_array
     return data_dict
 
 # normalize data

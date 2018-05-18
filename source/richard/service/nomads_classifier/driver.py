@@ -20,11 +20,14 @@ def get_data(host, token, col, exp, z_range, y_range, x_range):
                                                                          str(y_range),
                                                                          str(x_range)))
     resource = NeuroDataResource(host, token, col, exp)
+
     data_dict = {}
     blocks = intern.block_compute(x_range[0], x_range[1], y_range[0], y_range[1], z_range[0], z_range[1], (0, 0, 0), (5000, 5000, 20))
     orig_shape = (z_range[1] - z_range[0], y_range[1] - y_range[0], x_range[1] - x_range[0])
     for chan in resource.channels:
-        merged_array = np.zeros(orig_shape)
+        test = resource.get_cutout(chan, [1, 50], [1, 50], [1, 50])
+        type = test.dtype
+        merged_array = np.zeros(orig_shape, dtype = type)
         for block in blocks:
             x_r, y_r, z_r = block
             merged_array[z_r[0] - z_range[0]:z_r[1] - z_range[0], y_r[0] - y_range[0]:y_r[1] - y_range[0], x_r[0] - x_range[0]:x_r[1] - x_range[0]] = \
@@ -53,14 +56,17 @@ def format_data(data_dict):
     for chan, value in data_dict.items():
         if "psd" in chan.lower() or "synapsin" in chan.lower():
             format_chan = []
+
             for z in range(value.shape[0]):
                 raw = value[z]
+
                 if (raw.dtype != np.dtype("uint8")):
                     info = np.iinfo(raw.dtype) # Get the information of the incoming image type
                     raw = raw.astype(np.float64) / info.max # normalize the data to 0 - 1
                     raw = 255 * raw # Now scale by 255
                     raw = raw.astype(np.uint8)
                 #raw = pool(raw, (32, 32), np.mean)
+
                 format_chan.append(raw)
             data.append(np.stack(format_chan))
     data = np.stack(data)

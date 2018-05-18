@@ -65,8 +65,8 @@ def pymeda_pipeline(predictions, raw_data, title = "PyMeda Plots", cluster_level
     sys.stdout = open(os.devnull, 'w')
     meda = pymeda.Meda(data = df, title = title, cluster_levels = cluster_levels)
     sys.stdout = sys.__stdout__
-    try:
-        meda.generate_report(path)
-    except:
-        print("Too many points, cannot generate plots. Fix incoming!")
+    #try:
+    meda.generate_report(path)
+    #except:
+    #    print("Too many points, cannot generate plots. Fix incoming!")
     return
