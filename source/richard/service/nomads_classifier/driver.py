@@ -10,8 +10,9 @@ from nd_boss import boss_push
 import csv
 import logging
 from traceback import print_exc
-
+import intern.utils.parallel as intern
 # pull data from BOSS
+
 def get_data(host, token, col, exp, z_range, y_range, x_range):
     print("Downloading {} from {} with ranges: z: {} y: {} x: {}".format(exp,
                                                                          col,
@@ -20,8 +21,15 @@ def get_data(host, token, col, exp, z_range, y_range, x_range):
                                                                          str(x_range)))
     resource = NeuroDataResource(host, token, col, exp)
     data_dict = {}
+    blocks = intern.block_compute(x_range[0], x_range[1], y_range[0], y_range[1], z_range[0], z_range[1], (0, 0, 0), (5000, 5000, 20))
+    orig_shape = (z_range[1] - z_range[0], y_range[1] - y_range[0], x_range[1] - x_range[0])
     for chan in resource.channels:
-        data_dict[chan] = resource.get_cutout(chan, z_range, y_range, x_range)
+        merged_array = np.zeros(orig_shape)
+        for block in blocks:
+            x_r, y_r, z_r = block
+            merged_array[z_r[0] - z_range[0]:z_r[1] - z_range[0], y_r[0] - y_range[0]:y_r[1] - y_range[0], x_r[0] - x_range[0]:x_r[1] - x_range[0]] = \
+            resource.get_cutout(chan, z_r, y_r, x_r)
+        data_dict[chan] = merged_array
     return data_dict
 
 # normalize data
@@ -107,17 +115,18 @@ def driver(bucket, host, token, col, exp, z_range, y_range, x_range, path = "./r
         logging.info("Failed to pull data from BOSS. Run with smaller cube of data or check if BOSS is online.")
         logging.info(e)
         logging.info("Exiting...")
-        upload_results(path, results_key)
+        #upload_results(bucket, path, results_key)
         print_exc()
         return
-
+    return
+'''
     try:
         results = run_nomads(data_dict)
     except Exception as e:
         logging.info("Failed to run Nomads-Unsupervised detection algorithm on data.")
         logging.info(e)
         logging.info("Exiting...")
-        upload_results(path, results_key)
+        upload_results(bucket, path, results_key)
         print_exc()
         return
 
@@ -139,7 +148,7 @@ def driver(bucket, host, token, col, exp, z_range, y_range, x_range, path = "./r
         logging.info("Failed to run Nomads-Classfier algorithm on data.")
         logging.info(e)
         logging.info("Exiting...")
-        upload_results(path, results_key)
+        upload_results(bucket, path, results_key)
         print_exc()
         return
 
@@ -186,6 +195,7 @@ def driver(bucket, host, token, col, exp, z_range, y_range, x_range, path = "./r
     upload_results(bucket, path, results_key)
 
     return info, results, boss_links
+    '''
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='NOMADS Classifier driver.')

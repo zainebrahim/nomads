@@ -51,11 +51,11 @@ def submit_job(session, bucket_name, email, pipeline, token, col, exp, z_range, 
     job_name = "_".join([pipeline, col, exp, "z", str(z_range_proc[0]), str(z_range_proc[1]), "y", \
     str(y_range_proc[0]), str(y_range_proc[1]), "x", str(x_range_proc[0]), str(x_range_proc[1])])
 
-    client = session.client('s3')
+    s3_client = session.client('s3')
 
-    s3_bucket_exists_waiter = client.get_waiter('bucket_exists')
+    s3_bucket_exists_waiter = s3_client.get_waiter('bucket_exists')
     try:
-        bucket = client.create_bucket(Bucket=bucket_name)
+        bucket = s3_client.create_bucket(Bucket=bucket_name)
         s3 = boto3.resource("s3")
         bucket = s3.Bucket(bucket_name)
         bucket.Acl().put(ACL='public-read')
@@ -63,11 +63,11 @@ def submit_job(session, bucket_name, email, pipeline, token, col, exp, z_range, 
         print("bucket fail")
         raise
 
-    url = "https://s3.console.aws.amazon.com/s3/buckets/{}}/{}/?region=us-east-1&tab=overview".format(bucket_name, job_name)
+    url = "https://s3.console.aws.amazon.com/s3/buckets/{}/{}/?region=us-east-1&tab=overview".format(bucket_name, job_name)
     send_email(url, email, pipeline)
 
 
-    client = boto3.client("batch")
+    client = session.client("batch")
     response = client.describe_compute_environments(
         computeEnvironments=[
             'nomads-ce',
@@ -139,7 +139,7 @@ def submit_job(session, bucket_name, email, pipeline, token, col, exp, z_range, 
                 "python3",
                 "driver.py",
                 "--bucket",
-                bucket,
+                bucket_name,
                 "--host",
                 "api.boss.neurodata.io",
                 "--token",

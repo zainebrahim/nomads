@@ -95,7 +95,7 @@ def driver(bucket, host, token, col, exp, z_range, y_range, x_range, path = "./r
         logging.info("Failed to pull data from BOSS. Run with smaller cube of data or check if BOSS is online.")
         logging.info(e)
         logging.info("Exiting...")
-        upload_results(path, results_key)
+        upload_results(bucket, path, results_key)
         print_exc()
         return
 
@@ -105,7 +105,7 @@ def driver(bucket, host, token, col, exp, z_range, y_range, x_range, path = "./r
         logging.info("Failed to run Nomads-Unsupervised detection algorithm on data.")
         logging.info(e)
         logging.info("Exiting...")
-        upload_results(path, results_key)
+        upload_results(bucket, path, results_key)
         print_exc()
         return
 
